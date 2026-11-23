@@ -714,15 +714,80 @@ No real survey file exists. Create synthetic `samples/input-sample.csv` and `.xl
 
 Each stage lists its scope, how to try it, and when it is done. Every stage ends with `mvn verify` green (except Stage 0) and no unrelated refactor. Follow the TDD rule from 15.1 in every stage.
 
-| Stage | Name | Depends on |
+| Stage | Name | Depends on | Can start in parallel with |
+|---|---|---|---|
+| 0 | Deployment baseline + map services contracts | - | 1 |
+| 1 | Project skeleton + pure core | - | 0 |
+| 2 | End-to-end CSV flow, offline | 1 | - (after 1) |
+| 3 | Real maps: Photon + OSRM adapters | 0, 2 | 4 (after 0,2) |
+| 4 | XLSX support and CSV/XLSX parity | 2 | 3 (after 2) |
+| 5 | Optional offline bundle + bundled-services launcher | 0, 3, 4 | - (only if bundle selected) |
+| 6 | Hardening, smoke tests, docs | 3, 4 (5 if bundle selected) | - |
+
+### 16.1 Stage checklist
+
+Use this checklist to track progress. Mark a stage done only when its "Done when" criteria and required checks pass.
+
+- [ ] **Stage 0 - Deployment baseline + map services contracts** (`stage-0-deploy-baseline`) - independent; can run in parallel with Stage 1.
+- [ ] **Stage 1 - Project skeleton + pure core** (`stage-1-project-core`) - independent; can run in parallel with Stage 0.
+- [ ] **Stage 2 - End-to-end CSV flow, offline** (`stage-2-csv-offline`) - depends on Stage 1.
+- [ ] **Stage 3 - Real maps: Photon + OSRM adapters** (`stage-3-real-maps`) - depends on Stages 0 and 2; can run in parallel with Stage 4 once dependencies are done.
+- [ ] **Stage 4 - XLSX support and CSV/XLSX parity** (`stage-4-xlsx-parity`) - depends on Stage 2; can run in parallel with Stage 3 once Stage 2 is done.
+- [ ] **Stage 5 - Optional offline bundle + bundled-services launcher** (`stage-5-offline-bundle`) - optional; depends on Stages 0, 3, 4; execute only if offline bundle packaging is selected.
+- [ ] **Stage 6 - Hardening, smoke tests, docs** (`stage-6-hardening-docs`) - depends on Stages 3, 4 and 5 only if bundle selected.
+
+### 16.2 Standard stage execution protocol (team prompt)
+
+Use this prompt/protocol when assigning any stage to a teammate. Replace placeholders before sending.
+
+```text
+Tarea: Implementar Stage <N> - <Nombre> del proyecto ZON Calculadora.
+
+Contexto obligatorio:
+- Leer `PLAN-IMPLEMENTACION.md` completo antes de empezar, con foco en: secciones 2-5, 8-15, Stage <N>, y Definition of Done.
+- Respetar arquitectura hexagonal: `core` sin dependencias a CLI/HTTP/CSV/XLSX/OSRM/Photon/filesystem/process. Los adapters implementan ports.
+- TDD obligatorio: Red -> Green -> Refactor. No agregar comportamiento productivo sin test que falle primero.
+- Stack: Java 21, Maven, `groupId=ar.zon`, `artifactId=zon-calculadora`, base package `ar.zon.calculadora`. No usar `itec` en identificadores.
+- No incluir alcance fuera de Increment 1 (precio/costo/moneda, UI, API REST, autenticación, DB, avión, EV, generación de plantilla encuesta, conteo de asistentes).
+
+Dependencias / paralelismo:
+- Stage asignado: <N>
+- Depende de: <listar stages o "ninguna">
+- Puede hacerse en paralelo con: <listar stages o "ninguna">
+- No iniciar si las dependencias no están mergeadas, salvo acuerdo explícito y documentado.
+
+Flujo Git / PR (nomenclatura estándar):
+1. Actualizar rama base: `git checkout main` (o la rama base acordada) && `git pull`.
+2. Crear rama: `git checkout -b stage-<N>-<slug>`.
+   - Nomenclatura de rama: `stage-0-deploy-baseline`, `stage-1-project-core`, `stage-2-csv-offline`, `stage-3-real-maps`, `stage-4-xlsx-parity`, `stage-5-offline-bundle`, `stage-6-hardening-docs`.
+3. Implementar SOLO el alcance del Stage <N>. Si aparece algo extra, anotarlo como issue/follow-up; no expandir scope.
+4. Correr checks antes de PR:
+   - `mvn test` (si aplica)
+   - `mvn verify`
+   - Smoke/manual check definido en "Try it / Done when" del stage.
+5. Commits: Conventional Commits, pequeños y revisables. Sin Co-Authored-By de AI.
+6. Push y PR:
+   - Título PR: `stage-<N>: <nombre corto>`
+   - Descripción PR debe incluir: objetivo del stage, cambios realizados, cómo probar (comandos), resultado de tests/verificación, riesgos/limitaciones, y checklist "Done when" del stage.
+7. No mergear sin revisión. Resolver comentarios con cambios trazables.
+
+Entregable esperado:
+- Código/tests/docs del stage.
+- PR con evidencia de verificación.
+- Si hay decisiones abiertas o bloqueos, reportarlos explícitamente en la PR con opciones y impacto.
+```
+
+### 16.3 Dependency matrix (quick reference)
+
+| Stage | Depends on | Independent / Parallel |
 |---|---|---|
-| 0 | Deployment baseline + map services contracts | - |
-| 1 | Project skeleton + pure core | - |
-| 2 | End-to-end CSV flow, offline | 1 |
-| 3 | Real maps: Photon + OSRM adapters | 0, 2 |
-| 4 | XLSX support and CSV/XLSX parity | 2 (independent of 3) |
-| 5 | Optional offline bundle + bundled-services launcher | 0, 3, 4 |
-| 6 | Hardening, smoke tests, docs | 3, 4 (5 if bundle selected) |
+| 0 | - | Independent. Can run in parallel with Stage 1. |
+| 1 | - | Independent. Can run in parallel with Stage 0. |
+| 2 | 1 | Starts after Stage 1. |
+| 3 | 0, 2 | Can run in parallel with Stage 4 after Stages 0 and 2 are done. |
+| 4 | 2 | Can run in parallel with Stage 3 after Stage 2 is done (does not depend on Stage 3). |
+| 5 | 0, 3, 4 | Optional. Only if offline bundle selected. After 0,3,4. |
+| 6 | 3, 4 (+5 if bundle selected) | Final hardening stage. |
 
 ### Stage 0 - Deployment baseline + map services contracts
 
