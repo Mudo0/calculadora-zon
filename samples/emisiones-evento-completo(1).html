@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emisiones de transporte del evento</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--g:#1F5E4B;--ink:#14201B;--mut:#4A5A52;--line:#C9D6CF;--soft:#EEF3F0;--bad:#A32A1B}
+*{box-sizing:border-box}
+body{margin:0;background:var(--soft);color:var(--ink);font:400 15px/1.4 "DM Sans",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line)}
+header b{font-size:16px;margin-right:auto}
+main{max-width:1000px;margin:0 auto;padding:20px}
+.card{margin:0 0 16px;padding:18px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+h1,h2{margin:0 0 8px}h1{font-size:24px}h2{font-size:18px}
+.sub,.note{color:var(--mut);font-size:14px;margin:0 0 12px}
+.t,legend{display:block;margin:0 0 6px;padding:0;font-size:14px;font-weight:700}
+.f{margin:0 0 14px;padding:0;border:0}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{width:100%;min-height:42px;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit}
+.g,.g2{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+.g2{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start}
+.o{display:flex;align-items:center;gap:8px;min-height:42px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;cursor:pointer}
+.o:has(input:checked){border-color:var(--g);background:var(--soft)}
+.o input{width:18px;height:18px;margin:0;accent-color:var(--g)}
+button{min-height:42px;padding:0 16px;border:0;border-radius:10px;font:700 15px "DM Sans",system-ui,sans-serif;cursor:pointer;margin:0 8px 8px 0}
+.p{background:var(--g);color:#fff}.s{background:#fff;color:var(--g);border:1.5px solid var(--g)}.l{background:none;color:var(--mut)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.tab{background:none;color:var(--mut);margin:0}.tab.on{background:var(--soft);color:var(--g)}
+:focus-visible{outline:3px solid #7FB8A3;outline-offset:2px}
+.hidden{display:none!important}
+.err{color:var(--bad);font-weight:700;font-size:14px;margin:0 0 10px}
+.warn{padding:10px 14px;border-radius:10px;background:#FFF1D6;color:#6B4400;font-weight:700;margin:0 0 16px}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px}
+.ok{background:#DDF3E8;color:#0F6E56}.no{background:#FBE3DF;color:var(--bad)}
+.sc{max-height:280px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+td input{width:110px;min-height:34px}
+.num{text-align:right}
+.gh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:8px}.gp{font-size:34px;line-height:1}
+.bar{height:14px;border-radius:7px;background:#DCE6E0;overflow:hidden}.bar i{display:block;height:100%;border-radius:7px;transition:width .3s}
+</style>
+</head>
+<body>
+<div id="login"><div class="card" style="max-width:360px;margin:12vh auto">
+<h1>Ingresar</h1><p class="sub">Cálculo de emisiones de transporte de eventos.</p>
+<label class="t" for="u">Usuario</label><input id="u" type="text" autocomplete="username">
+<label class="t" for="p" style="margin-top:12px">Contraseña</label><input id="p" type="password" autocomplete="current-password">
+<p class="err" id="le" style="margin-top:10px"></p><button class="p" id="go">Ingresar</button>
+<p class="note">Usuario de prueba: auditor / itec2026</p></div></div>
+
+<div id="app" class="hidden">
+<header><b>Emisiones de transporte del evento</b>
+<button class="tab on" data-v="vEv">Evento</button><button class="tab" data-v="vEnc">Encuesta</button><button class="tab" data-v="vCalc">Cálculos</button>
+<select id="evsel" aria-label="Evento activo" style="width:auto;max-width:240px"></select><button class="s" id="evnew" style="margin:0">+ Evento</button><span class="note" id="who" style="margin:0"></span><button class="l" id="out" style="margin:0">Salir</button></header>
+<main>
+<div class="warn hidden" id="banner">DATOS DE PRUEBA: no usar como resultado.</div>
+<section id="vEnc" class="hidden"><div class="card" id="g2"></div><div class="grid">
+<div class="card"><h2>Responder la encuesta</h2><p class="note" id="qev"></p><p class="note">Cada respuesta que cargues aquí queda vinculada al evento seleccionado. Un evento puede tener muchas respuestas de encuesta.</p>
+<div id="q1">
+<div class="f"><label class="t" for="pais">País de origen</label><select id="pais"><option value="Argentina">Argentina</option><option value="otro">Otro país</option></select></div>
+<div class="f hidden" id="gpo"><label class="t" for="paisO">¿Cuál?</label><input id="paisO" type="text"></div>
+<fieldset class="f" id="gcap"><legend>¿Venís de Córdoba capital?</legend><div class="g"><label class="o"><input type="radio" name="cap" value="si" checked>Sí</label><label class="o"><input type="radio" name="cap" value="no">Otra localidad</label></div></fieldset>
+<div class="f" id="gb"><label class="t" for="bar">Barrio</label><select id="bar"></select></div>
+<div class="f hidden" id="gl"><label class="t" for="loc">Localidad</label><select id="loc"></select></div>
+<p class="err" id="e1"></p><button class="p" id="n1">Siguiente</button></div>
+<div id="q2" class="hidden">
+<fieldset class="f"><legend>¿Cómo viniste?</legend><div class="g" id="gm"></div></fieldset>
+<fieldset class="f" id="gc"><legend>Combustible</legend><div class="g" id="gcc"></div></fieldset>
+<div class="f" id="gp"><label class="t" for="pers">¿Cuántas personas viajaron en ese vehículo, contándote a vos?</label><input id="pers" type="number" min="1" value="1" style="width:110px"></div>
+<p class="note">Se cuenta solo el viaje de ida al evento.</p>
+<p class="err" id="e2"></p><button class="l" id="v1">Volver</button><button class="p" id="env">Enviar respuesta</button></div>
+<div id="q3" class="hidden"><p><b>Respuesta registrada.</b></p><button class="p" id="otra">Cargar otra respuesta</button></div>
+</div>
+<div>
+<div class="card"><h2>Importar respuestas</h2>
+<p class="sub">Descargá el Google Sheet como CSV (Archivo, Descargar, CSV) y subilo, o pegá las filas con los encabezados. Si hay una columna «evento», cada fila va al evento con ese nombre; si no, al evento activo. Reemplaza las importadas antes de cada evento.</p>
+<div class="f"><input type="file" id="file" accept=".csv,.tsv,.txt"></div>
+<div class="f"><textarea id="paste" rows="3" placeholder="O pegá acá las filas del Sheet"></textarea></div>
+<button class="s" id="imp">Importar</button><button class="l" id="tpl">Descargar plantilla CSV</button>
+<p class="note" id="impm"></p></div>
+<div class="card"><h2>Respuestas cargadas</h2><p id="cnt"></p>
+<button class="s" id="test">Cargar datos de prueba</button><button class="l" id="clr">Borrar todas</button></div>
+</div></div></section>
+
+<section id="vEv"><div class="grid"><div>
+<div class="card"><h2>Evento</h2><div class="g2">
+<div><label class="t" for="evn">Nombre del evento</label><input id="evn" type="text"></div>
+<div><label class="t" for="evf">Fecha</label><input id="evf" type="date"></div>
+<div><label class="t" for="evN">Personas esperadas (población)</label><input id="evN" type="number" min="1"></div>
+</div>
+<div style="margin-top:14px"><label class="t" for="evd">Dirección de la sede</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="evd" type="text" placeholder="Ej.: Av. Colón 500, Córdoba" style="flex:1;min-width:220px"><button class="s" id="evb" style="margin:0">Buscar</button></div><p class="note" id="evm" style="margin:6px 0 0"></p></div>
+<p class="note">Ingresá una dirección postal normal (calle, número, localidad y provincia). El sistema la geocodifica internamente para calcular distancias; no necesitás copiar ni ingresar coordenadas.</p></div></div>
+<div class="card"><h2>Archivo de exportación</h2><p id="fn" style="margin:0 0 10px"></p><button class="s" id="xenc" style="margin:0 8px 8px 0">Exportar encuestas del evento a Excel</button><button class="l" id="nuevo" style="margin:0">Eliminar este evento</button><p class="note">El archivo incluye todas las respuestas asociadas a este evento, aunque todavía no se haya alcanzado la muestra mínima.</p></div>
+</div><div>
+<div class="card"><h2>Avance de la muestra</h2><div id="g1"></div></div>
+<div class="card"><h2>Criterio de muestra representativa</h2><div class="g2">
+<div><label class="t" for="cf">Confianza</label><select id="cf"><option value="1.645">90 %</option><option value="1.96">95 %</option><option value="2.576">99 %</option></select></div>
+<div><label class="t" for="mg">Margen de error</label><select id="mg"><option value="0.03">3 %</option><option value="0.05">5 %</option><option value="0.1">10 %</option></select></div></div>
+<p class="note" id="crit" style="margin:12px 0 0"></p></div>
+</div></div></section>
+<section id="vCalc" class="hidden">
+<div class="card"><div id="g3"></div><p class="note" id="lk" style="margin:8px 0 0"></p></div>
+<div id="unl" class="hidden">
+<div class="card"><h2>Distancias</h2>
+<p class="sub">Auto, moto y colectivo se calculan por ruta con OSRM, un servicio gratuito sin clave. El avión usa línea recta. Podés corregir cualquier valor a mano.</p>
+<button class="p" id="rs">Calcular distancias</button><button class="s" id="lr">Usar línea recta donde falló</button>
+<p class="note" id="dm"></p><div class="sc" id="dt"></div></div>
+<div class="card"><h2>Resultado y estadísticas</h2><div id="rt"></div>
+<button class="p" id="xl">Descargar Excel (.xlsx)</button><button class="s" id="cv">Descargar CSV para Google Sheets</button><p class="err" id="xe"></p></div>
+</div></section>
+</main></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const BARRIOS=[["1 de Julio",-31.3726,-64.0775],["1ra. Junta",-31.426,-64.2277],["1º de Mayo",-31.4336,-64.118],["20 de Junio",-31.3867,-64.1644],["23 de Abril",-31.4578,-64.128],["25 de Mayo",-31.4899,-64.0824],["4 de Febrero",-31.4556,-64.145],["A.T. E.",-31.4342,-64.2307],["Achaval Peña",-31.436,-64.204],["Acosta",-31.424,-64.1239],["Aeronáutico",-31.4299,-64.2648],["Aeropuerto",-31.3205,-64.2006],["Alberdi",-31.4085,-64.2019],["Alborada (N)",-31.3415,-64.2683],["Alborada (S)",-31.3621,-64.2253],["Alejandro Centeno",-31.3585,-64.2321],["Almirante Brown",-31.461,-64.091],["Alta Córdoba",-31.3907,-64.1836],["Altamira",-31.4249,-64.1314],["Alto Alberdi",-31.4075,-64.2198],["Alto Hermoso",-31.3331,-64.3068],["Alto Palermo",-31.3749,-64.2248],["Alto Verde",-31.3736,-64.2174],["Altos de Santa Ana",-31.4062,-64.2485],["Altos de Vélez Sarsfield",-31.4484,-64.2141],["Altos de Villa Cabrera",-31.3813,-64.2201],["Altos del Chateau",-31.3744,-64.2657],["Altos San Martín",-31.3773,-64.2145],["Altos Sud de San Vicente",-31.4369,-64.1408],["Ameghino Norte",-31.4296,-64.2374],["Ameghino Sud",-31.4345,-64.2375],["Ampliación 1º de Mayo",-31.4434,-64.1122],["Ampliación Altamira",-31.4189,-64.1302],["Ampliación Benjamín Matienzo",-31.4488,-64.2411],["Ampliación Empalme",-31.4319,-64.1253],["Ampliación Farina",-31.4628,-64.2143],["Ampliación General Artigas",-31.4626,-64.1953],["Ampliación Jardín Espinosa",-31.4564,-64.1728],["Ampliación Kennedy",-31.4564,-64.1944],["Ampliación las Palmas",-31.4005,-64.2427],["Ampliación los Plátanos",-31.4185,-64.2341],["Ampliación Palmar",-31.3879,-64.1191],["Ampliación Panamericano",-31.3653,-64.18],["Ampliación Poeta Lugones",-31.3582,-64.2224],["Ampliación Pueyrredón",-31.3942,-64.145],["Ampliación Residencial América",-31.376,-64.1613],["Ampliación Rosedal",-31.4425,-64.2277],["Ampliación San Fernando",-31.4535,-64.1918],["Ampliación San Pablo",-31.4544,-64.1587],["Ampliación Vélez Sarsfield",-31.4532,-64.2165],["Ana María Zumarán",-31.3774,-64.202],["Anexo las Palmas",-31.4158,-64.2406],["Apeadero la Tablada",-31.3507,-64.237],["Argüello",-31.3447,-64.2685],["Argüello Norte",-31.3318,-64.2552],["Arsenales Anexo",-31.4234,-64.2901],["Arturo Capdevila",-31.376,-64.1314],["Autódromo",-31.3273,-64.252],["Avenida",-31.4274,-64.2165],["Ayacucho",-31.3791,-64.1712],["Bajada de Piedra",-31.4158,-64.1454],["Bajada San Roque",-31.427,-64.205],["Bajo Galán",-31.3935,-64.202],["Bajo General Paz",-31.4152,-64.1589],["Bajo Palermo",-31.387,-64.2244],["Bella Vista",-31.4309,-64.2027],["Bella Vista Oeste",-31.4326,-64.2076],["Benjamín Policarpio Cabral",-31.4367,-64.1379],["Betania",-31.4548,-64.091],["Bialet Masse",-31.4526,-64.1653],["Boedo",-31.4321,-64.1097],["Brigadier San Martín",-31.3411,-64.2393],["Cabaña del Pilar",-31.4421,-64.1676],["Cabo Farina",-31.4631,-64.2069],["Cáceres",-31.4334,-64.1994],["California",-31.4513,-64.2052],["Camino a 60 Cuadras",-31.5028,-64.1306],["Camino a San Carlos",-31.5107,-64.1676],["Camino a Villa Pose",-31.4455,-64.1011],["Carbo",-31.4812,-64.2061],["Carola Lorenzini",-31.4284,-64.2145],["Carrara",-31.4541,-64.2571],["Carrara de Horizonte",-31.4587,-64.2639],["Caseros",-31.4145,-64.2084],["Centro",-31.4155,-64.1815],["Centro América",-31.3708,-64.1683],["Cerro Chico",-31.3669,-64.2222],["Cerro de las Rosas",-31.3746,-64.2334],["Cerro Norte",-31.3222,-64.2761],["Cerveceros",-31.4637,-64.1598],["Chateau Carreras",-31.3848,-64.2588],["Ciudad de Juan Pablo II",-31.3641,-64.1613],["Ciudad Universitaria",-31.4379,-64.1885],["Ciudadela",-31.446,-64.2015],["Claros del Bosque",-31.4533,-64.1501],["CO.VI.CO.",-31.3906,-64.2623],["Cofico",-31.4031,-64.1854],["Colinas de Bella Vista",-31.4364,-64.2086],["Colinas de Vélez Sarsfield",-31.4384,-64.1996],["Colinas del Cerro",-31.3789,-64.2457],["Colón",-31.4372,-64.1555],["Colonia Lola",-31.4143,-64.1163],["Comandante Espora",-31.4177,-64.2241],["Comercial",-31.4846,-64.2095],["Congreso",-31.4671,-64.2342],["Consorcio 16 de Noviembre",-31.3188,-64.2562],["Consorcio Esperanza",-31.4208,-64.2347],["Cooperativa 16 de Noviembre",-31.3117,-64.2622],["Corral de Palos",-31.4396,-64.1411],["Country los Algarrobos",-31.4833,-64.2401],["Crisol Norte",-31.4276,-64.1673],["Crisol Sud",-31.4357,-64.1664],["Cupani",-31.4216,-64.2077],["De los Cuartetos",-31.3562,-64.1303],["De Mis Sueños",-31.477,-64.087],["Dean Funes",-31.4454,-64.1175],["Docta",-31.4724,-64.2971],["Dr Remo M. Copello",-31.3204,-64.2667],["Dr René Favaloro",-31.4091,-64.2318],["Ducasse",-31.4047,-64.1907],["Ejército Argentino",-31.4475,-64.1961],["El Bosque",-31.3449,-64.3045],["El Cabildo",-31.4859,-64.2355],["El Carmelo",-31.4717,-64.1308],["El Cerrito",-31.323,-64.2503],["El Pueblito",-31.4085,-64.2563],["El Quebrachal",-31.3364,-64.0656],["El Quebracho",-31.4773,-64.1377],["El Refugio",-31.3446,-64.2813],["El Trébol",-31.4231,-64.2256],["El Tropezón",-31.3971,-64.265],["El Viejo Algarrobo",-31.5035,-64.1651],["Emaús",-31.4374,-64.1434],["Empalme",-31.4343,-64.1297],["Empalme Casas de Obreros y Empleados",-31.4391,-64.1252],["Escobar",-31.3922,-64.2207],["Estación Ferreyra",-31.4903,-64.095],["Estación Flores",-31.4486,-64.2481],["Evita",-31.4493,-64.1092],["Ferrer",-31.444,-64.2121],["Ferreyra",-31.4662,-64.1119],["Ferroviario  Mitre",-31.4337,-64.1369],["Finca la Dorotea",-31.3762,-64.1133],["Fincas del Sur",-31.4857,-64.1557],["General Arenales",-31.3686,-64.0602],["General Artigas",-31.4618,-64.1997],["General Belgrano",-31.3706,-64.1373],["General Bustos",-31.3904,-64.1708],["General Mosconi",-31.365,-64.1503],["General Paz",-31.4127,-64.1669],["General Pueyrredón",-31.4018,-64.1623],["General Savio",-31.3714,-64.1631],["Granadero Pringles",-31.3761,-64.1976],["Granja de Funes",-31.3484,-64.2449],["Guarnición Area Cba",-31.4465,-64.2794],["Guarnición Militar Cba",-31.4002,-64.2935],["Guayaquil",-31.3829,-64.1555],["Guiñazú",-31.312,-64.1749],["Guiñazú Sud",-31.3352,-64.1831],["Güemes",-31.4266,-64.195],["Hipólito Irigoyen",-31.3727,-64.1863],["Hogar Propio",-31.4073,-64.154],["Horizonte",-31.4585,-64.2065],["Inaudi",-31.4774,-64.1924],["Independencia",-31.4018,-64.1894],["Industrial Este",-31.4293,-64.1639],["Industrial Oeste",-31.4092,-64.264],["Ipona",-31.4447,-64.1884],["Irupe",-31.4591,-64.2025],["Ituzaingó",-31.4649,-64.0956],["Ituzaingó Anexo",-31.4656,-64.0825],["Ituzaingó II",-31.4712,-64.0912],["Jardín",-31.4465,-64.1816],["Jardín del Pilar",-31.4471,-64.1539],["Jardín del Sud",-31.4563,-64.1646],["Jardín Espinosa",-31.452,-64.1718],["Jardín Hipódromo",-31.4598,-64.1886],["Jerónimo Luis de Cabrera",-31.3557,-64.1815],["Jockey",-31.4631,-64.1774],["Jockey Club",-31.4546,-64.1808],["José Hernández",-31.4443,-64.1571],["José Ignacio Díaz 1a Sección",-31.4428,-64.1385],["José Ignacio Díaz 2a Sección",-31.4484,-64.1449],["José Ignacio Díaz 3a Sección",-31.4533,-64.125],["José Ignacio Rucci",-31.4638,-64.128],["Juan B. Justo",-31.3596,-64.1813],["Juan XXIII",-31.4205,-64.2249],["Juniors",-31.4193,-64.1652],["Kairos",-31.4826,-64.2504],["Kennedy",-31.4577,-64.1911],["La Carbonada",-31.5162,-64.0861],["La Carolina",-31.3517,-64.2861],["La Esperanza",-31.484,-64.2421],["La Floresta",-31.3966,-64.0612],["La France",-31.3731,-64.2088],["La Fraternidad",-31.3769,-64.1845],["La Hortensia",-31.3847,-64.14],["La Reserva",-31.3674,-64.268],["La Salle",-31.3453,-64.2755],["La Toma",-31.405,-64.2599],["Lamadrid",-31.4143,-64.2345],["Las Cañitas",-31.4656,-64.1892],["Las Cañuelas",-31.4771,-64.1555],["Las Dalias",-31.4095,-64.2375],["Las Delicias",-31.3621,-64.299],["Las Flores",-31.4517,-64.1994],["Las Huertillas",-31.4707,-64.1985],["Las Lilas",-31.4456,-64.1326],["Las Magnolias",-31.3679,-64.2107],["Las Margaritas",-31.3784,-64.2099],["Las Palmas",-31.4046,-64.2389],["Las Playas",-31.4395,-64.2479],["Las Rosas",-31.3911,-64.2284],["Las Violetas",-31.4096,-64.2505],["Liceo General Paz",-31.3366,-64.1627],["Lomas de la Carolina",-31.3549,-64.3046],["Lomas de San Martín",-31.3833,-64.205],["Los Álamos",-31.3677,-64.1566],["Los Ángeles",-31.3592,-64.2368],["Los Boulevares",-31.3433,-64.2159],["Los Ceibos",-31.4293,-64.148],["Los Chingolos",-31.3429,-64.1592],["Los Eucaliptus",-31.4678,-64.0891],["Los Filtros",-31.4137,-64.2484],["Los Fresnos",-31.4698,-64.085],["Los Gigantes",-31.3615,-64.1695],["Los Granados",-31.4241,-64.2372],["Los Hornillos",-31.3396,-64.1732],["Los Jacarandaes",-31.4185,-64.2374],["Los Josefinos",-31.4142,-64.1242],["Los Naranjos",-31.4288,-64.2239],["Los Olmos",-31.4595,-64.217],["Los Olmos Sud",-31.4674,-64.2142],["Los Paraísos",-31.3823,-64.1945],["Los Pinos",-31.3935,-64.1411],["Los Plátanos",-31.4213,-64.2303],["Los Robles",-31.4022,-64.2638],["Los Sauces",-31.4613,-64.0987],["Lourdes",-31.3313,-64.2559],["Maipú 1a Sección",-31.4358,-64.1598],["Maipú 2a Sección",-31.4299,-64.1598],["Maldonado",-31.4094,-64.1293],["Manantiales",-31.4545,-64.2354],["Manantiales II",-31.4797,-64.2705],["Marcelo T. de Alvear",-31.3675,-64.1722],["Marcos Sastre",-31.4455,-64.1499],["Marechal",-31.3957,-64.2132],["María Lastenia",-31.3273,-64.1818],["Mariano Balcarce",-31.4339,-64.2216],["Mariano Fragueiro",-31.3662,-64.1858],["Marqués de Sobremonte",-31.3633,-64.1957],["Maurizi",-31.427,-64.2083],["Mercantil",-31.3189,-64.2588],["Militar General Deheza",-31.396,-64.2723],["Mirador",-31.4285,-64.1389],["Mirador del Chateau",-31.3843,-64.2629],["Miralta",-31.4242,-64.1124],["Mirizi",-31.4708,-64.2061],["Muller",-31.4157,-64.1392],["Mutual de los Docentes",-31.4576,-64.2237],["Nicolás Avellaneda",-31.4618,-64.1039],["Nuestro Hogar II",-31.3874,-64.098],["Nuestro Hogar III",-31.5015,-64.2064],["Nueva Córdoba",-31.4264,-64.1862],["Nueva Córdoba Anexa",-31.4358,-64.1638],["Nueva Italia",-31.3873,-64.1456],["Nuevo Urca",-31.3824,-64.2675],["O.S.N.",-31.46,-64.1582],["Obispo Angelelli",-31.5051,-64.1943],["Obrero",-31.4135,-64.2123],["Observatorio",-31.423,-64.2022],["Ombú",-31.3893,-64.2176],["Oña",-31.4496,-64.1655],["Padre Claret",-31.3547,-64.2379],["Palmar",-31.3905,-64.1249],["Panamericano",-31.3722,-64.1801],["Parque Alameda",-31.4664,-64.1843],["Parque Atlántica",-31.4542,-64.2103],["Parque Capital",-31.437,-64.2178],["Parque Capital Sur",-31.4442,-64.2195],["Parque Chacabuco",-31.3822,-64.2114],["Parque Chateau Carreras",-31.3657,-64.259],["Parque Corema",-31.3682,-64.2286],["Parque del Este",-31.4043,-64.1453],["Parque Don Bosco",-31.388,-64.2718],["Parque Futura",-31.487,-64.2521],["Parque Jorge Newbery",-31.3502,-64.1821],["Parque Latino",-31.4593,-64.2122],["Parque Liceo 1a Sección",-31.3493,-64.1662],["Parque Liceo 2a Sección",-31.3555,-64.1621],["Parque Liceo 3a Sección",-31.357,-64.152],["Parque los Molinos",-31.4562,-64.2006],["Parque Modelo",-31.3645,-64.2512],["Parque Montecristo",-31.3887,-64.14],["Parque República",-31.416,-64.2586],["Parque San Carlos",-31.4492,-64.1601],["Parque San Vicente",-31.4249,-64.1374],["Parque Sarmiento",-31.4319,-64.1765],["Parque Tablada",-31.3877,-64.2316],["Parque Vélez Sarsfield",-31.4416,-64.2039],["Paso de los Andes",-31.4162,-64.2035],["Patria",-31.4092,-64.1601],["Patricios",-31.3752,-64.1378],["Patricios Este",-31.3669,-64.1355],["Patricios Norte",-31.3664,-64.1398],["Patricios Oeste",-31.367,-64.1447],["Poeta Lugones",-31.3605,-64.2114],["Policial",-31.3157,-64.2611],["Portal de Córdoba",-31.4447,-64.1095],["Portal del Jacaranda",-31.3444,-64.2892],["Posta de Vargas",-31.4799,-64.1941],["Providencia",-31.4015,-64.1999],["Puente Blanco",-31.4103,-64.2342],["Quebrada de las Rosas",-31.3907,-64.2555],["Quinta Santa Ana",-31.412,-64.2034],["Quintas de Argüello",-31.3399,-64.2713],["Quintas de Ferreyra",-31.4903,-64.0683],["Quintas de Flores",-31.4878,-64.1651],["Quintas de Italia",-31.4979,-64.179],["Quintas de San Jorge",-31.3739,-64.1305],["Quintas del Sur",-31.4609,-64.0863],["Ramón J. Carcano",-31.4638,-64.1445],["Recreo del Norte",-31.3118,-64.1684],["Remedios de Escalada",-31.3411,-64.1826],["Renacimiento",-31.4185,-64.1214],["René Favaloro Sud",-31.4486,-64.236],["Residencial América",-31.3822,-64.162],["Residencial Aragón",-31.3716,-64.1305],["Residencial Olivos",-31.4329,-64.2104],["Residencial San Carlos",-31.4446,-64.1653],["Residencial San Jorge",-31.3689,-64.1305],["Residencial San Roque",-31.4263,-64.2472],["Residencial Sud",-31.4656,-64.2249],["Residencial Vélez Sarsfield",-31.4487,-64.209],["Rivadavia",-31.4331,-64.1486],["Rivera Indarte",-31.3316,-64.2985],["Rocío del Sur",-31.4867,-64.1913],["Rogelio Martínez",-31.4387,-64.1787],["Rosedal",-31.4342,-64.2262],["S.E.P.",-31.4599,-64.1639],["Sacchi",-31.4536,-64.2657],["San Antonio",-31.472,-64.1904],["San Cayetano",-31.4347,-64.142],["San Daniel",-31.4491,-64.2028],["San Felipe",-31.4575,-64.1372],["San Fernando",-31.448,-64.1907],["San Francisco",-31.4263,-64.2114],["San Ignacio",-31.3907,-64.2486],["San Javier",-31.4556,-64.102],["San José",-31.3394,-64.2892],["San Lorenzo (S)",-31.454,-64.1115],["San Lorenzo Norte",-31.375,-64.2167],["San Luis de Francia",-31.48,-64.2532],["San Marcelo",-31.3618,-64.2347],["San Martín",-31.3928,-64.1966],["San Martín Anexo",-31.3816,-64.2022],["San Martín Norte",-31.3731,-64.2029],["San Nicolás",-31.3807,-64.1514],["San Pablo",-31.4444,-64.1609],["San Pedro Nolasco",-31.4651,-64.2367],["San Rafael",-31.423,-64.2202],["San Ramón",-31.3404,-64.1019],["San Salvador",-31.4004,-64.2321],["San Vicente",-31.4239,-64.1502],["Santa Ana Residencial",-31.4229,-64.2148],["Santa Cecilia",-31.3571,-64.2277],["Santa Clara de Asis",-31.3807,-64.14],["Santa Isabel 1a Sección",-31.4695,-64.2448],["Santa Isabel 2a Sección",-31.4779,-64.2323],["Santa Isabel 3a Sección",-31.4789,-64.2426],["Santa Rita",-31.4477,-64.1727],["Santa Rosa Residencial",-31.4772,-64.2056],["Sargento Cabral",-31.3767,-64.1932],["Sarmiento",-31.4305,-64.1546],["Siete Soles",-31.4455,-64.3056],["Smata",-31.4547,-64.2232],["Solares de Santa María",-31.4605,-64.2249],["Suárez",-31.4394,-64.2102],["Tablada Park",-31.371,-64.2261],["Talleres (E)",-31.3902,-64.1517],["Talleres (O)",-31.3905,-64.1593],["Talleres Sud",-31.4388,-64.1343],["Tejas de la Candelaria",-31.4773,-64.1995],["Tejas del Sur",-31.4626,-64.1905],["Teodoro Fels",-31.3995,-64.2485],["Tranviarios",-31.4096,-64.2282],["Tte. Benjamín Matienzo",-31.4412,-64.2369],["U.O.C.R.A.",-31.3226,-64.2652],["Universitario de Horizonte",-31.496,-64.2657],["Urca",-31.3839,-64.2382],["Uritorco",-31.401,-64.2351],["Urquiza",-31.4385,-64.1479],["V.I.C.O.R.",-31.477,-64.2467],["Valle Cercano",-31.4875,-64.2207],["Valle del Cerro",-31.3715,-64.2404],["Valle Escondido",-31.3709,-64.2789],["Villa 9 de Julio",-31.3288,-64.2756],["Villa Adela",-31.4353,-64.2481],["Villa Alberdi",-31.3937,-64.236],["Villa Alberto",-31.416,-64.2666],["Villa Alberto Anexo",-31.416,-64.2773],["Villa Alicia Risler",-31.3131,-64.1812],["Villa Allende Parque",-31.3144,-64.2827],["Villa Argentina",-31.4311,-64.1357],["Villa Aspasia",-31.4431,-64.248],["Villa Ávalos",-31.4166,-64.2452],["Villa Azalaiz",-31.3736,-64.1517],["Villa Azalaiz Oeste",-31.3678,-64.1752],["Villa Belgrano",-31.3592,-64.2529],["Villa Bustos",-31.4382,-64.1108],["Villa Cabrera",-31.3873,-64.2116],["Villa Centenario",-31.365,-64.2314],["Villa Claret",-31.3469,-64.2382],["Villa Claudina",-31.3888,-64.1229],["Villa Corina",-31.3752,-64.1448],["Villa Cornu",-31.3143,-64.2734],["Villa Coronel Olmedo",-31.4863,-64.136],["Villa Derna",-31.425,-64.2868],["Villa el Libertador",-31.4928,-64.2239],["Villa Esquiu",-31.3586,-64.1083],["Villa Eucarística",-31.482,-64.1788],["Villa General Urquiza",-31.3919,-64.2427],["Villa Gran Parque",-31.3274,-64.1617],["Villa Mafekin",-31.4028,-64.2559],["Villa Marta",-31.361,-64.2281],["Villa Martínez",-31.4168,-64.2511],["Villa Páez",-31.3952,-64.2068],["Villa Quisquizacate",-31.3338,-64.2827],["Villa Retiro",-31.3318,-64.1422],["Villa Retiro de Horizonte",-31.3502,-64.1452],["Villa Revol",-31.4438,-64.1726],["Villa Revol Anexo",-31.4376,-64.1701],["Villa Rivadavia Anexo \"A\"",-31.5131,-64.1946],["Villa Rivera Indarte",-31.3205,-64.2933],["Villa Saldán",-31.3164,-64.3039],["Villa San Carlos",-31.4647,-64.1667],["Villa San Isidro",-31.4561,-64.1879],["Villa Serrana",-31.3302,-64.2786],["Villa Siburu",-31.3953,-64.2303],["Villa Silvano Funes",-31.3404,-64.2506],["Villa Solferino",-31.3422,-64.2755],["Villa Unión",-31.4242,-64.2639],["Villa Warcalde",-31.3442,-64.2965],["Villa Zeppelin",-31.4243,-64.2721],["Vivero Norte",-31.3821,-64.1447],["Yapeyú",-31.413,-64.1499],["Yofre H",-31.382,-64.1249],["Yofre I",-31.3914,-64.1289],["Yofre Norte",-31.3834,-64.1341],["Yofre Sud",-31.3927,-64.1352],["Zepa",-31.3903,-64.1024]];
+const LOCS=[["1 de Agosto",-31.3069,-64.1785],["Achiras",-33.177,-64.9945],["Adelia María",-33.6316,-64.0208],["Agua de Oro",-31.0582,-64.2956],["Alcira",-32.7571,-64.3379],["Aldea Santa María",-33.6949,-62.9115],["Alejandro Roca",-33.3565,-63.7206],["Alejo Ledesma",-33.6076,-62.6261],["Alicia",-31.9387,-62.4658],["Almafuerte",-32.1935,-64.2544],["Almirante Brown",-31.3076,-64.1815],["Alpa Corral",-32.6904,-64.7212],["Alta Gracia",-31.6577,-64.4288],["Alto Alegre",-32.3461,-62.8853],["Alto de los Quebrachos",-30.541,-65.0384],["Alto Resbaloso - el Barrial",-31.9621,-65.0678],["Altos de Chipion",-30.9564,-62.3379],["Amboy",-32.1759,-64.5765],["Ambul",-31.4897,-65.0567],["Ana Zumarán",-32.3908,-63.0575],["Anisacate",-31.7231,-64.4145],["Arias",-33.6412,-62.4028],["Arroyito",-31.4194,-63.0503],["Arroyo Algodon",-32.202,-63.1628],["Arroyo Cabral",-32.489,-63.4015],["Arroyo los Patos",-31.7501,-65.0043],["Arroyo San Antonio",-32.2621,-64.5937],["Ascochinga",-30.9595,-64.2754],["Assunta",-33.6333,-63.2259],["Atahona",-30.9035,-63.7056],["Ausonia",-32.6614,-63.2448],["Avellaneda",-30.5947,-64.2078],["Ballesteros",-32.5454,-62.9833],["Ballesteros Sur",-32.5886,-63.027],["Balnearia",-31.0107,-62.6671],["Barrio Gilbert",-31.4427,-64.3179],["Barrio Gilbert (1° de Mayo)",-31.4406,-64.3177],["Barrio las Quintas",-31.5503,-64.4334],["Barrio Nuevo Río Ceballos",-31.198,-64.2888],["Barrio Santa Isabel",-30.8375,-64.5367],["Barrio Villa del Parque",-31.7772,-64.5321],["Bañado de Soto",-30.8044,-65.0437],["Bell Ville",-32.6286,-62.6891],["Bengolea",-33.0274,-63.6719],["Benjamín Gould",-33.5901,-62.7304],["Berrotaran",-32.4529,-64.3854],["Bialet Masse",-31.3169,-64.4724],["Bouwer",-31.5577,-64.1945],["Brinckmann",-30.8665,-62.0357],["Bulnes",-33.5033,-64.6756],["Cabalango",-31.3931,-64.5636],["Calchin",-31.6679,-63.2007],["Calchin Oeste",-31.8634,-63.2782],["Camilo Aldao",-33.1237,-62.0966],["Caminiaga",-30.0682,-64.0529],["Campos del Virrey",-31.5854,-64.344],["Canals",-33.5624,-62.8856],["Candelaria Sur",-30.8392,-63.8008],["Canteras el Sauce",-31.0864,-64.3145],["Canteras Quilpo",-30.8667,-64.6829],["Capilla de los Remedios",-31.4302,-63.8321],["Capilla de Siton",-30.573,-63.6517],["Capilla del Carmen",-31.5082,-63.3421],["Capilla del Monte",-30.8564,-64.5263],["Capilla Vieja",-31.942,-64.6165],["Capitán General Bernardo O'Higgins",-33.2472,-62.2697],["Carnerillo",-32.9153,-64.0257],["Carrilobo",-31.8716,-63.1165],["Casa Bamba",-31.3429,-64.3993],["Casa Grande",-31.1697,-64.4776],["Caseros Centro",-31.5293,-64.1689],["Causana",-31.4638,-64.4125],["Cavanagh",-33.4783,-62.3393],["Cañada de Luque",-30.7371,-63.7237],["Cañada de Machado",-31.4289,-63.587],["Cañada de Río Pinto",-30.7759,-64.2183],["Cañada del Sauce",-32.368,-64.6425],["Cerro Colorado",-30.0961,-63.9288],["Chajan",-33.5563,-65.0053],["Chalacea",-30.7546,-63.5682],["Chancani",-31.4173,-65.4453],["Charbonier",-30.7721,-64.5442],["Charras",-33.0242,-64.0458],["Chazon",-33.0773,-63.2754],["Chañar Viejo",-30.014,-63.8504],["Chilibroste",-32.3326,-62.5136],["Chucul",-33.009,-64.1712],["Churqui Cañada",-30.1682,-63.9296],["Chuña",-30.4687,-64.6712],["Chuña Huasi",-29.9138,-64.13],["Cienaga del Coro",-31.0381,-65.2776],["Cintra",-32.3081,-62.6531],["Ciudad de los Niños",-31.2957,-64.1769],["Colazo",-31.9643,-63.3834],["Colonia 10 de Julio",-30.5274,-62.1142],["Colonia Almada",-32.0333,-63.8629],["Colonia Anita",-31.1439,-62.2136],["Colonia Barge",-33.2585,-62.6082],["Colonia Bismarck",-33.3003,-62.7133],["Colonia Bremen",-33.4635,-62.7324],["Colonia Caroya",-31.0172,-64.0667],["Colonia Italiana",-33.3119,-62.1808],["Colonia Iturraspe",-31.2071,-62.1099],["Colonia las Cuatro Esquinas",-31.1736,-63.3376],["Colonia las Pichanas",-31.2454,-62.9257],["Colonia Marina",-31.2485,-62.364],["Colonia Prosperidad",-31.6305,-62.3664],["Colonia San Bartolome",-31.5283,-62.7245],["Colonia San Pedro",-30.7836,-61.9176],["Colonia Santa María",-31.6058,-62.4279],["Colonia Tirolesa",-31.2358,-64.0673],["Colonia Valtelina",-31.053,-62.2354],["Colonia Veinticinco",-32.8884,-61.9348],["Colonia Vicente Aguero",-31.0278,-64.019],["Colonia Videla",-31.9175,-63.5047],["Colonia Vignaud",-30.8416,-61.9558],["Conlara",-32.0789,-65.2313],["Copacabana",-30.6113,-64.5556],["Coronel Baigorria",-32.8495,-64.3599],["Coronel Moldes",-33.6231,-64.5971],["Corral de Bustos",-33.2816,-62.1855],["Corral Quemado",-30.989,-64.3778],["Corralito",-32.0253,-64.1932],["Cosquin",-31.2406,-64.4655],["Costa Azul",-31.7247,-64.3939],["Costasacate",-31.6471,-63.7599],["Country Chacras de la Villa",-31.2982,-64.2371],["Country Chacras de la Villa - Country Sa",-31.3015,-64.2382],["Country San Isidro",-31.3055,-64.248],["Cruz Alta",-33.007,-61.811],["Cruz Caña",-32.2779,-65.0274],["Cruz de Caña",-31.0662,-64.9425],["Cruz del Eje",-30.7219,-64.8077],["Cuesta Blanca",-31.4788,-64.5773],["Dalmacio Vélez",-32.6109,-63.5799],["Dean Funes",-30.4229,-64.3517],["Del Campillo",-34.3761,-64.4945],["Despeñaderos",-31.8171,-64.289],["Devoto",-31.404,-62.3061],["Diego de Rojas",-31.0286,-63.3403],["Dique Chico",-31.7519,-64.3628],["Dos Arroyos",-31.8717,-64.9927],["Dumesnil",-31.3321,-64.3337],["El Alcalde",-31.1161,-63.6017],["El Arañado",-31.7412,-62.8933],["El Brete",-30.6722,-64.8699],["El Chacho",-30.8018,-65.6441],["El Corcovado - el Torreon",-32.1498,-64.5016],["El Crispin",-31.018,-63.6052],["El Diquecito",-31.3589,-64.3651],["El Durazno",-32.1696,-64.7748],["El Fortin",-31.9673,-62.3026],["El Fuertecito",-31.4039,-62.9734],["El Huayco",-31.8458,-64.9561],["El Manzano",-31.0818,-64.2998],["El Pantanillo",-31.8863,-64.9907],["El Potrerillo",-31.6456,-64.4816],["El Pueblito"],["El Rastreador",-33.6645,-63.5392],["El Rincon",-30.7397,-64.6485],["El Rodeo",-30.1761,-63.868],["El Tío",-31.3845,-62.8285],["El Tuscal",-29.7574,-64.5299],["El Valle",-31.9511,-65.0722],["Elena",-32.5721,-64.393],["Embalse",-32.2065,-64.4006],["Esquina",-31.0773,-63.7936],["Esquina del Alambre",-30.6016,-64.9074],["Estación Colonia Tirolesa",-31.2736,-64.0151],["Estación Lecueder",-34.4964,-64.8095],["Estación Luxardo",-31.3047,-62.1333],["Estancia de Guadalupe",-31.1242,-65.2269],["Estancia Vieja",-31.3843,-64.5173],["Etruria",-32.9405,-63.2473],["Eufrasio Loza",-29.9247,-63.5889],["Falda del Carmen",-31.5855,-64.4549],["Falda del Cañete",-31.5345,-64.456],["Freyre",-31.1647,-62.0976],["General Baldissera",-33.122,-62.3037],["General Cabrera",-32.8119,-63.8737],["General Deheza",-32.7549,-63.785],["General Fotheringham",-32.3234,-63.8704],["General Levalle",-34.0098,-63.9225],["General Paz",-31.1341,-64.141],["General Roca",-32.7305,-61.9171],["Guanaco Muerto",-30.4794,-65.0598],["Guasapampa",-31.0975,-65.3282],["Guatimozin",-33.4617,-62.4391],["Guiñazú Norte",-31.3067,-64.1703],["Gutemberg",-29.7227,-63.515],["Hernando",-32.4276,-63.733],["Hipólito Bouchard",-34.7223,-63.508],["Huanchillas",-33.6655,-63.6373],["Huerta Grande",-31.0601,-64.4843],["Huinca Renanco",-34.8397,-64.3725],["Idiazabal",-32.8131,-63.0329],["Impira",-31.7966,-63.6511],["Inriville",-32.9438,-62.2305],["Isla Verde",-33.2401,-62.4044],["Italo",-34.7912,-63.7812],["James Craik",-32.1613,-63.4652],["Jardín Arenales",-31.3686,-64.0603],["Jesus María",-30.9812,-64.0958],["José de la Quintana",-31.8035,-64.4189],["Juarez Celman",-31.257,-64.1652],["Justiniano Posse",-32.8836,-62.6803],["Kilómetro 658",-31.3702,-63.5326],["La Banda",-30.7629,-64.646],["La Batea",-30.4418,-65.4238],["La Boca del Río",-31.8374,-64.4336],["La Calera",-31.3436,-64.3335],["La Carbonada",-31.5286,-64.0713],["La Carlota",-33.4202,-63.297],["La Carolina",-33.1868,-64.7251],["La Cautiva",-33.9786,-64.0843],["La Cesira",-33.9519,-62.9745],["La Cortadera",-31.6687,-65.3724],["La Cruz",-32.3034,-64.4831],["La Cumbre",-30.9792,-64.4909],["La Cumbrecita",-31.897,-64.7752],["La Donosa",-31.643,-64.3454],["La Falda",-31.092,-64.4864],["La Floresta",-31.3961,-64.0609],["La Francia",-31.4064,-62.6344],["La Gilda",-33.2083,-64.2584],["La Granja",-31.0054,-64.2617],["La Higuera",-31.014,-65.102],["La Laguna",-32.8014,-63.244],["La Morada",-31.3051,-64.2626],["La Paisanita",-31.7194,-64.4779],["La Palestina",-32.6156,-63.4092],["La Pampa",-30.9432,-64.2765],["La Paquita",-30.9071,-62.2154],["La Para",-30.8925,-63.0011],["La Paz",-32.2173,-65.0511],["La Perla",-31.4426,-64.3485],["La Playa",-31.035,-65.3453],["La Playosa",-32.0997,-63.0325],["La Poblacion",-32.066,-65.0309],["La Posta",-30.5654,-63.5163],["La Puerta"],["La Quinta",-31.0623,-63.1501],["La Ramada",-32.2997,-65.0362],["La Rancherita",-31.7575,-64.4487],["La Rinconada",-30.1847,-62.8301],["La Serranita",-31.7331,-64.4564],["La Tordilla",-31.2352,-63.0599],["La Travesia",-32.1067,-65.0638],["Laborde",-33.153,-62.8561],["Laboulaye",-34.1236,-63.3886],["Laguna Larga",-31.7784,-63.8027],["Las Acequias",-33.2822,-63.9759],["Las Albahacas",-32.8925,-64.8436],["Las Arrias",-30.3813,-63.5967],["Las Bajadas",-32.0954,-64.3311],["Las Caleras",-32.3894,-64.5186],["Las Calles",-31.8207,-64.9718],["Las Cañadas",-30.9332,-64.719],["Las Chacras"],["Las Corzuelas",-31.2409,-64.2619],["Las Gramillas",-31.0883,-63.2418],["Las Higueras",-33.0892,-64.2868],["Las Isletillas",-32.5101,-63.929],["Las Jarillas",-31.5182,-64.5346],["Las Junturas",-31.8314,-63.4506],["Las Mojarras",-32.303,-63.2329],["Las Oscuras",-31.6634,-65.3191],["Las Palmas",-31.38,-65.29],["Las Perdices",-32.6982,-63.7083],["Las Peñas"],["Las Playas",-30.6896,-64.8509],["Las Rabonas",-31.8544,-64.9871],["Las Saladas",-30.7595,-63.2035],["Las Tapias",-31.9522,-65.1014],["Las Varas",-31.8013,-62.6171],["Las Varillas",-31.8731,-62.7188],["Las Vertientes",-33.2839,-64.5781],["Leguizamon",-34.2041,-62.9769],["Leones",-32.6584,-62.2999],["Loma Bola",-32.2189,-65.0285],["Los Callejones",-31.9323,-65.2331],["Los Cedros",-31.5572,-64.4028],["Los Cedros - las Quintas",-31.5263,-64.2848],["Los Cerrillos",-31.9738,-65.4376],["Los Chañaritos"],["Los Cisnes",-33.4001,-63.4717],["Los Cocos",-30.927,-64.5026],["Los Condores",-32.3211,-64.281],["Los Hornillos",-31.9017,-64.9901],["Los Hoyos",-29.8024,-63.6274],["Los Mistoles",-30.626,-63.8867],["Los Molinos",-31.8576,-64.3765],["Los Molles"],["Los Pozos",-30.5155,-64.2664],["Los Reartes",-31.9199,-64.5755],["Los Surgentes",-32.9844,-62.0237],["Los Talares",-31.3754,-65.0386],["Los Zorros",-32.0459,-63.2018],["Lozada",-31.6485,-64.09],["Luca",-32.5402,-63.4763],["Lucio V. Mansilla",-29.8064,-64.7065],["Luque",-31.6469,-63.3448],["Lutti",-32.2989,-64.7254],["Luyaba",-32.1483,-65.0566],["Malagueño",-31.4648,-64.3584],["Malena",-33.4893,-64.432],["Mallin",-31.2977,-64.575],["Malvinas Argentinas",-31.3677,-64.0503],["Manfredi",-31.8441,-63.7461],["Maquinista Gallini",-30.9074,-63.5321],["Marcos Juarez",-32.6913,-62.1058],["Marull",-30.9945,-62.8258],["Matorrales",-31.7145,-63.5119],["Mattaldi",-34.4804,-64.1695],["Mayu Sumaj",-31.4669,-64.5428],["Media Naranja",-30.6233,-64.9515],["Melo",-34.3483,-63.4472],["Mendiolaza",-31.2635,-64.3038],["Mi Granja",-31.3501,-63.9996],["Mi Valle",-31.5726,-64.3342],["Milenica",-31.4573,-64.4057],["Mina Clavero",-31.7268,-65.0055],["Miramar",-30.9145,-62.6749],["Monte Buey",-32.9175,-62.4577],["Monte de los Gauchos",-33.6369,-63.89],["Monte del Rosario",-30.9826,-63.6018],["Monte Leña",-32.6113,-62.5903],["Monte Maiz",-33.2046,-62.6012],["Monte Ralo",-31.9116,-64.24],["Montecristo",-31.3439,-63.9458],["Morrison",-32.5936,-62.836],["Morteros",-30.7107,-62.0044],["Mussi",-31.4273,-65.0757],["Nicolás Bruzzone",-34.4382,-64.3384],["Noetinger",-32.3667,-62.3121],["Nono",-31.7956,-65.0034],["Obispo Trejo",-30.7812,-63.413],["Olaeta",-33.0435,-63.9086],["Oliva",-32.0413,-63.5694],["Olivares de San Nicolás",-30.6021,-64.8434],["Onagoity",-34.7703,-63.6703],["Oncativo",-31.9128,-63.6837],["Ordoñez",-32.8413,-62.8661],["Pacheco de Melo",-33.7601,-63.4899],["Pajas Blancas",-31.2146,-64.2768],["Pampayasta Norte",-32.2417,-63.6422],["Pampayasta Sur",-32.2508,-63.651],["Panaholma",-31.6269,-65.0587],["Parque Calmayo",-32.0237,-64.4642],["Parque Norte",-31.3001,-64.1767],["Pascanas",-33.125,-63.0427],["Pasco",-32.747,-63.3411],["Paso del Durazno",-33.1703,-64.0487],["Paso Viejo",-30.7687,-65.1865],["Pilar",-31.6805,-63.8815],["Pincen",-34.8379,-63.9156],["Piquillin",-31.2996,-63.7591],["Plaza de Mercedes",-30.9781,-63.2596],["Plaza Luxardo",-31.3017,-62.2292],["Plaza San Francisco",-31.3698,-62.098],["Porteña",-31.0139,-62.0633],["Potrero de Garay",-31.7824,-64.5424],["Pozo del Molle",-32.0194,-62.9199],["Pozo Nuevo",-29.5775,-64.1071],["Pueblo Comechingones",-31.1685,-63.6076],["Pueblo Italiano",-33.8807,-62.8407],["Puesto de Castro",-30.2391,-63.4917],["Punta del Agua",-32.5754,-63.8102],["Quebracho Herrado",-31.5496,-62.2257],["Quebracho Ladeado",-32.2571,-65.0309],["Quebrada de los Pozos",-31.9075,-65.0345],["Quebrada de Luna",-30.795,-64.5211],["Quilino",-30.216,-64.503],["Rafael García",-31.6465,-64.2585],["Ramón J. Carcano",-32.4911,-63.1028],["Ranqueles",-34.8437,-64.0988],["Rayo Cortado",-30.0743,-63.825],["Rincon",-31.5954,-63.6155],["Río Bamba",-34.0511,-63.7322],["Río Ceballos",-31.1749,-64.3097],["Río Cuarto",-33.1243,-64.3487],["Río de los Sauces",-32.5266,-64.587],["Río Primero",-31.3292,-63.6219],["Río Segundo",-31.6502,-63.9119],["Río Tercero",-32.1731,-64.1131],["Rosales",-34.1718,-63.1535],["Rosario del Saladillo",-30.4293,-63.4479],["Sacanta",-31.6633,-63.0453],["Sagrada Familia",-31.2897,-63.4455],["Saira",-32.4064,-62.103],["Saladillo",-32.9332,-62.3429],["Saldán",-31.3143,-64.3129],["Salsacate",-31.3152,-65.091],["Salsipuedes",-31.1369,-64.289],["Sampacho",-33.3845,-64.722],["San Agustín",-31.9763,-64.3733],["San Antonio de Arredondo",-31.4782,-64.5289],["San Antonio de Litin",-32.2129,-62.633],["San Basilio",-33.4979,-64.3152],["San Carlos Minas",-31.1756,-65.1017],["San Clemente",-31.7167,-64.6266],["San Esteban",-30.92,-64.536],["San Francisco",-31.4276,-62.0866],["San Francisco del Chañar",-29.7883,-63.9431],["San Geronimo",-31.341,-64.9132],["San Huberto",-31.8325,-64.9857],["San Ignacio (Loteo San Javier)",-32.1668,-64.5164],["San Ignacio (Loteo Vélez Crespo)",-32.0995,-64.5338],["San Javier y Yacanto",-32.0267,-65.0276],["San Joaquin",-34.5106,-63.7133],["San José",-31.9573,-65.3152],["San José de la Dormida",-30.3546,-63.9467],["San José de las Salinas",-30.0091,-64.6251],["San Lorenzo",-31.6822,-65.0256],["San Marcos",-32.6303,-62.482],["San Marcos Sierra",-30.7803,-64.6469],["San Martín",-31.897,-65.5247],["San Nicolás",-31.4358,-64.4516],["San Pedro",-31.9368,-65.2192],["San Pedro de Gutemberg",-29.6982,-63.5611],["San Pedro de Toyos",-30.4542,-64.4476],["San Pedro Norte",-30.0888,-64.156],["San Roque",-31.3497,-64.4599],["San Roque del Lago",-31.3267,-64.4545],["San Severo",-33.5383,-63.0479],["San Vicente",-31.855,-65.4304],["Sanabria",-32.5276,-63.248],["Santa Catalina"],["Santa Elena"],["Santa Eufemia",-33.1768,-63.282],["Santa Magdalena",-34.5147,-63.9415],["Santa María de Punilla",-31.2703,-64.4653],["Santa Monica",-32.0666,-64.5791],["Santa Rosa de Calamuchita",-32.0716,-64.5412],["Santa Rosa de Río Primero",-31.1515,-63.4016],["Santiago Temple",-31.3871,-63.4182],["Sarmiento",-30.7742,-64.109],["Saturnino María Laspiur",-31.7029,-62.484],["Sauce Arriba",-31.9144,-65.1688],["Sebastián Elcano",-30.1614,-63.5935],["Seeber",-30.924,-61.9737],["Segunda Usina",-32.165,-64.3784],["Serrano",-34.47,-63.5376],["Serrezuela",-30.6392,-65.3813],["Silvio Pellico",-32.2506,-62.9317],["Simbolar",-30.4753,-63.985],["Sinsacate",-30.9429,-64.0885],["Socavones",-31.5301,-64.1458],["Solar de los Molinos",-31.8262,-64.5198],["Suco",-33.4395,-64.8317],["Tala Cañada",-31.357,-64.9765],["Tala Huasi",-31.4724,-64.5652],["Talaini",-31.2497,-65.1672],["Tancacha",-32.2402,-63.9799],["Taninga",-31.3454,-65.0801],["Tanti",-31.3549,-64.591],["Tasna",-31.6303,-65.1483],["Tejas Tres",-31.4661,-64.3671],["Ticino",-32.6919,-63.4353],["Tierra Alta",-31.4723,-64.4708],["Tinoco",-31.1239,-63.8924],["Tío Pujio",-32.2864,-63.354],["Toledo",-31.5561,-64.0081],["Toro Pujio",-31.109,-62.9877],["Tosno",-30.9499,-65.3099],["Tosquitas",-33.8188,-64.4569],["Transito",-31.4251,-63.1954],["Tuclame",-30.7485,-65.2375],["Ucacha",-33.0334,-63.5083],["Unquillo",-31.232,-64.3177],["Valle Alegre",-31.6082,-64.4404],["Valle de Anisacate",-31.7315,-64.413],["Valle Hermoso",-31.1173,-64.4843],["Viamonte",-33.7471,-63.0989],["Vicuña Mackenna",-33.9172,-64.3902],["Villa Albertina",-32.4342,-63.1845],["Villa Allende",-31.2922,-64.295],["Villa Alpina",-31.9533,-64.8133],["Villa Amancay",-32.1864,-64.5705],["Villa Ascasubi",-32.1644,-63.8926],["Villa Berna",-31.9052,-64.7429],["Villa Candelaria Norte",-29.8163,-63.3548],["Villa Carlos Paz",-31.4182,-64.4933],["Villa Cerro Azul",-31.0702,-64.3197],["Villa Ciudad de América",-31.7932,-64.5139],["Villa Ciudad de América (Loteo Diego de",-31.7945,-64.5123],["Villa Ciudad Parque los Reartes",-31.9092,-64.5457],["Villa Ciudad Parque los Reartes (1° Sección)",-31.9119,-64.528],["Villa Ciudad Parque los Reartes (3° Sección)",-31.9092,-64.5457],["Villa Ciudad Parques los Reartes (1° Sección)",-31.9092,-64.5457],["Villa Concepcion del Tío",-31.3225,-62.8145],["Villa Corazon de María",-31.4435,-63.9964],["Villa Cura Brochero",-31.7064,-65.0191],["Villa de las Rosas",-31.9503,-65.0545],["Villa de María",-29.9044,-63.7223],["Villa de Pocho",-31.4881,-65.283],["Villa de Soto",-30.853,-64.9925],["Villa del Dique",-32.1697,-64.4568],["Villa del Prado",-31.6177,-64.3918],["Villa del Rosario",-31.554,-63.5341],["Villa del Totoral",-30.7038,-64.0683],["Villa del Transito",-31.4474,-63.194],["Villa Dolores",-31.944,-65.1961],["Villa el Chacay",-32.8937,-64.8675],["Villa el Fachinal - Parque Norte - Guiña",-31.3101,-64.1805],["Villa el Tala",-32.2543,-64.585],["Villa Elisa",-32.7488,-62.3307],["Villa Flor Serrana",-31.3865,-64.6004],["Villa Fontana",-30.894,-63.1159],["Villa General Belgrano",-31.9808,-64.5606],["Villa Giardino",-31.0363,-64.4929],["Villa Gutiérrez",-30.657,-64.182],["Villa Huidobro",-34.8372,-64.5834],["Villa la Bolsa",-31.7288,-64.4324],["Villa la Rivera",-32.2667,-64.5205],["Villa la Viña",-31.8728,-65.0373],["Villa Lago Azul",-31.374,-64.4831],["Villa los Aromos",-31.736,-64.4389],["Villa los Llanos",-31.275,-64.1634],["Villa los Patos",-32.7637,-62.7278],["Villa María",-32.4121,-63.25],["Villa Nueva",-32.4288,-63.2494],["Villa Oeste",-32.4343,-63.2876],["Villa Parque Santa Ana",-31.5905,-64.352],["Villa Parque Siquiman",-31.3457,-64.4803],["Villa Pastora",-31.3069,-64.1785],["Villa Quilino",-30.2101,-64.4776],["Villa Quillinzo",-32.2384,-64.521],["Villa Reduccion",-33.2015,-63.8622],["Villa Río Icho Cruz",-31.4791,-64.5627],["Villa Rossi",-34.2979,-63.2685],["Villa Rumipal",-32.1894,-64.4792],["Villa San Esteban",-31.6335,-62.8968],["Villa San Isidro - José de la Quintana",-31.8208,-64.3935],["Villa San José",-31.2796,-64.5653],["Villa San Miguel",-31.8583,-64.3751],["Villa Santa Cruz del Lago",-31.3693,-64.5205],["Villa Santa Eugenia",-32.6651,-64.7415],["Villa Sarmiento"],["Villa Sierras de Oro",-31.4579,-64.4217],["Villa Tulumba",-30.3975,-64.1232],["Villa Valeria",-34.3409,-64.9178],["Villa Yacanto",-32.1038,-64.7541],["Washington",-33.8734,-64.6886],["Wenceslao Escalante",-33.172,-62.77],["Yocsina",-31.4471,-64.3661]];
+const $=i=>document.getElementById(i),U='auditor',P='itec2026';
+const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(x,d=2)=>Number(x).toLocaleString('es-AR',{maximumFractionDigits:d});
+const BM={},LM={};BARRIOS.forEach(b=>BM[norm(b[0])]=b);LOCS.forEach(b=>LM[norm(b[0])]=b);
+const MED={auto:'Auto',moto:'Moto',colectivo:'Colectivo',avion:'Avión'};
+// Factores iniciales orientativos en kg CO2e por km de vehículo (auto/moto)
+// o por pasajero-km (colectivo/avión). Son editables en la pantalla de cálculo.
+const FACTORES={
+ 'auto-nafta':{v:0.16272,u:'kg CO2e/vehículo-km',src:'DEFRA/DESNZ 2025, auto promedio nafta; proxy internacional'},
+ 'auto-gasoil':{v:0.17304,u:'kg CO2e/vehículo-km',src:'DEFRA/DESNZ 2025, auto promedio diésel; proxy internacional'},
+ 'auto-gas':{v:0.19,u:'kg CO2e/vehículo-km',src:'Estimación provisoria GNC: 2,1 kg CO2e/m³ × 0,09 m³/km; editable'},
+ 'moto-nafta':{v:0.11367,u:'kg CO2e/vehículo-km',src:'DEFRA/DESNZ 2025, motocicleta promedio; proxy internacional'},
+ 'colectivo':{v:0.10385,u:'kg CO2e/pasajero-km',src:'DEFRA/DESNZ 2025, colectivo local promedio; proxy internacional'},
+ 'avion':{v:0.10916,u:'kg CO2e/pasajero-km',src:'DEFRA/DESNZ 2025, vuelo internacional promedio en económica; proxy internacional'}
+};
+const COMBOS=Object.keys(FACTORES);
+const isV=m=>m==='auto'||m==='moto';
+const tipoDe=r=>isV(r.medio)?r.medio+'-'+r.combustible:r.medio;
+const tipoTxt=t=>{const a=t.split('-');return MED[a[0]]+(a[1]?(a[1]==='gas'?' a GNC':' a '+a[1]):'')};
+const nuevoEv=()=>({id:'e'+Date.now().toString(36)+Math.floor(Math.random()*1e4),ev:{nombre:'',fecha:'',N:'',sede:'',dir:'',dirTxt:'',dirMsg:'',coords:''},resp:[],conf:'1.96',marg:'0.05',dist:{},distSede:'',fact:Object.fromEntries(Object.entries(FACTORES).map(([k,v])=>[k,v.v])),prueba:false});
+let ALL={events:[],act:null},db={};
+function load(){let d=null;try{d=JSON.parse(localStorage.getItem('emis2'))}catch(e){}
+ ALL=d&&d.events&&d.events.length?d:{events:[nuevoEv()],act:null};
+ if(!ALL.events.some(x=>x.id===ALL.act))ALL.act=ALL.events[0].id;ALL.events.forEach(x=>{x.fact=x.fact||{};Object.entries(FACTORES).forEach(([k,v])=>{if(x.fact[k]==null)x.fact[k]=v.v});x.resp=x.resp||[];x.dist=x.dist||{}});db=ALL.events.find(x=>x.id===ALL.act)}
+function save(){try{localStorage.setItem('emis2',JSON.stringify(ALL))}catch(e){}}
+function fill(id,list,ph){$(id).innerHTML=(ph?'<option value="">'+ph+'</option>':'')+list.map(x=>'<option>'+esc(x[0])+'</option>').join('')}
+function rad(id,name,opts){$(id).innerHTML=opts.map((o,i)=>'<label class="o"><input type="radio" name="'+name+'" value="'+o[0]+'"'+(i?'':' checked')+'>'+o[1]+'</label>').join('')}
+const val=n=>{const e=document.querySelector('input[name="'+n+'"]:checked');return e?e.value:''};
+
+/* ---- ingreso y pestañas ---- */
+function entrar(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('who').textContent='Usuario: '+U;render()}
+$('go').onclick=()=>{if($('u').value.trim()===U&&$('p').value===P){try{sessionStorage.setItem('ok','1')}catch(e){}entrar()}else $('le').textContent='Usuario o contraseña incorrectos.'};
+$('out').onclick=()=>{try{sessionStorage.removeItem('ok')}catch(e){}location.reload()};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));['vEv','vEnc','vCalc'].forEach(v=>$(v).classList.toggle('hidden',v!==b.dataset.v));render()});
+
+/* ---- encuesta ---- */
+function sync1(){const o=$('pais').value==='otro',c=val('cap')==='si';$('gpo').classList.toggle('hidden',!o);$('gcap').classList.toggle('hidden',o);$('gb').classList.toggle('hidden',o||!c);$('gl').classList.toggle('hidden',o||c)}
+function sync2(){const v=isV(val('medio'));$('gc').classList.toggle('hidden',!v);$('gp').classList.toggle('hidden',!v)}
+function sh(id){['q1','q2','q3'].forEach(q=>$(q).classList.toggle('hidden',q!==id))}
+document.addEventListener('change',e=>{if(e.target.id==='pais'||e.target.name==='cap')sync1();if(e.target.name==='medio')sync2()});
+$('n1').onclick=()=>{const o=$('pais').value==='otro',c=val('cap')==='si',f=o?$('paisO').value.trim():(c?$('bar').value:$('loc').value);
+ if(!f){$('e1').textContent=o?'Indicá tu país.':c?'Elegí tu barrio de la lista.':'Elegí tu localidad de la lista.';return}
+ $('e1').textContent='';sh('q2')};
+$('v1').onclick=()=>sh('q1');
+$('otra').onclick=()=>{sh('q1')};
+$('env').onclick=()=>{const m=val('medio'),p=isV(m)?parseInt($('pers').value,10):1;
+ if(!(p>=1)){$('e2').textContent='Indicá cuántas personas viajaron, mínimo 1.';return}
+ $('e2').textContent='';const o=$('pais').value==='otro',c=val('cap')==='si';
+ db.resp.push({pais:o?$('paisO').value.trim():'Argentina',capital:o?null:c,barrio:!o&&c?$('bar').value:'',localidad:!o&&!c?$('loc').value:'',medio:m,combustible:isV(m)?val('comb'):'',personas:p,fuente:'formulario'});
+ save();render();sh('q3')};
+
+/* ---- importación ---- */
+function parseCSV(t){const first=t.split('\n')[0],d=[';','\t',','].map(c=>[c,first.split(c).length]).sort((a,b)=>b[1]-a[1])[0][0];
+ const rows=[];let r=[],f='',q=false;
+ for(let i=0;i<t.length;i++){const ch=t[i];
+  if(q){if(ch==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+  else if(ch==='"')q=true;else if(ch===d){r.push(f);f=''}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;r.push(f);rows.push(r);r=[];f=''}else f+=ch}
+ if(f||r.length){r.push(f);rows.push(r)}
+ return rows.filter(x=>x.some(v=>v.trim()))}
+const ALIAS={pais:['pais'],cap:['capital'],bar:['barrio'],loc:['localidad'],med:['medio','transporte','vini'],com:['combustible'],per:['persona','cantidad']};
+function importar(text){const rows=parseCSV(text.replace(/^\uFEFF/,''));
+ if(rows.length<2)return{ok:[],err:['No hay filas para importar.']};
+ const hd=rows[0].map(norm),ix={};for(const k in ALIAS)ix[k]=hd.findIndex(h=>ALIAS[k].some(a=>h.includes(a)));ix.evt=hd.findIndex(h=>h==='evento'||h==='nombre del evento');
+ const falta=['med','per'].filter(k=>ix[k]<0);
+ if(falta.length)return{ok:[],err:['No encuentro las columnas: '+falta.map(k=>k==='med'?'medio de transporte':'personas').join(', ')+'.']};
+ const ok=[],err=[];
+ rows.slice(1).forEach((c,i)=>{const g=k=>ix[k]<0?'':String(c[ix[k]]||'').trim(),L='Fila '+(i+2)+': ';let evId=db.id;const en=g('evt');
+  if(en){const f=ALL.events.find(x=>norm(x.ev.nombre)===norm(en));if(!f){err.push(L+'el evento "'+en+'" no existe');return}evId=f.id}
+  const m=norm(g('med')),medio=/colectivo|omnibus|autobus|bondi|\bbus\b/.test(m)?'colectivo':/moto/.test(m)?'moto':/auto|coche/.test(m)?'auto':/avion/.test(m)?'avion':'';
+  if(!medio){err.push(L+'medio de transporte no reconocido');return}
+  const f=norm(g('com')),com=/gasoil|diesel|gas oil/.test(f)?'gasoil':/nafta|gasolina/.test(f)?'nafta':/gas|gnc/.test(f)?'gas':'';
+  if(isV(medio)&&!com){err.push(L+'falta el combustible');return}
+  let p=parseInt(g('per'),10);if(!isV(medio)&&!(p>=1))p=1;
+  if(!(p>=1)){err.push(L+'cantidad de personas inválida');return}
+  const pais=g('pais'),otro=pais&&norm(pais)!=='argentina',bar=g('bar'),lo=g('loc');
+  const cap=ix.cap>=0?/^(si|s|true|1|capital)/.test(norm(g('cap'))):!!bar&&!lo;
+  if(otro){ok.push({pais,capital:null,barrio:'',localidad:'',medio,combustible:com,personas:p,fuente:'importado',evId});return}
+  const nom=cap?bar:lo;if(!nom){err.push(L+(cap?'falta el barrio':'falta la localidad'));return}
+  const hit=(cap?BM:LM)[norm(nom)];
+  ok.push({pais:'Argentina',capital:cap,barrio:cap?(hit?hit[0]:nom):'',localidad:cap?'':(hit?hit[0]:nom),medio,combustible:isV(medio)?com:'',personas:p,fuente:'importado',evId})});
+ return{ok,err}}
+$('imp').onclick=async()=>{const f=$('file').files[0],t=f?await f.text():$('paste').value;
+ if(!t.trim()){$('impm').textContent='Subí un archivo o pegá las filas.';return}
+ const r=importar(t),by={};r.ok.forEach(x=>{(by[x.evId]=by[x.evId]||[]).push(x)});
+ for(const id in by){const e=ALL.events.find(x=>x.id===id);e.resp=e.resp.filter(x=>x.fuente!=='importado').concat(by[id].map(x=>{const{evId,...y}=x;return y}));e.prueba=false}
+ if(r.ok.length)save();
+ const res=Object.keys(by).map(id=>esc(ALL.events.find(x=>x.id===id).ev.nombre||'Evento sin nombre')+': <b>'+by[id].length+'</b>').join(', ');
+ $('impm').innerHTML='Importadas, por evento: '+(res||'<b>0</b>')+'. Rechazadas: <b>'+r.err.length+'</b>.'+(r.err.length?'<br>'+r.err.slice(0,8).map(esc).join('<br>')+(r.err.length>8?'<br>...':''):'');render()};
+function descargar(nombre,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombre;document.body.appendChild(a);a.click();a.remove()}
+$('tpl').onclick=()=>descargar('plantilla-encuestas.csv',new Blob(['\uFEFFevento;pais;capital;barrio;localidad;medio;combustible;personas\nNombre del evento;Argentina;si;Nueva Córdoba;;auto;nafta;2\nNombre del evento;Argentina;no;;Villa Carlos Paz;colectivo;;1\n'],{type:'text/csv'}));
+$('clr').onclick=()=>{if(confirm('¿Borrar todas las respuestas?')){db.resp=[];db.dist={};db.prueba=false;save();render()}};
+$('test').onclick=()=>{const bs=['Nueva Córdoba','Alta Córdoba','Güemes','Alberdi','General Paz','Cerro de las Rosas','Villa Belgrano','Argüello','Centro'].filter(x=>BM[norm(x)]),ls=['Villa Carlos Paz','Alta Gracia','Jesús María','La Calera','Río Ceballos','Villa Allende','Unquillo'].filter(x=>LM[norm(x)]);
+ const pick=a=>a[Math.floor(Math.random()*a.length)],out=[];
+ for(let i=0;i<90;i++){const c=Math.random()<.75,r=Math.random(),medio=r<.5?'auto':r<.6?'moto':'colectivo';
+  out.push({pais:'Argentina',capital:c,barrio:c?pick(bs):'',localidad:c?'':pick(ls),medio,combustible:medio==='auto'?pick(['nafta','nafta','gasoil','gas']):medio==='moto'?'nafta':'',personas:medio==='auto'?1+Math.floor(Math.random()*4):1,fuente:'importado'})}
+ db.resp=db.resp.filter(x=>x.fuente!=='importado').concat(out);db.prueba=true;db.ev.N=db.ev.N||100;db.ev.sede=db.ev.sede||'Nueva Córdoba';db.ev.nombre=db.ev.nombre||'Evento de prueba';
+ db.fact={'auto-nafta':0.2,'auto-gasoil':0.2,'auto-gas':0.15,'moto-nafta':0.1,colectivo:0.05};save();render()};
+
+/* ---- muestra ---- */
+const minimo=(N,z,e)=>{const n0=z*z*.25/(e*e);return Math.min(N,Math.ceil(n0/(1+(n0-1)/N)))};
+const margen=(n,N,z)=>n>=N||N<2?0:z*Math.sqrt(.25/n*(N-n)/(N-1));
+function evalM(){const N=+db.ev.N,n=db.resp.length,z=+db.conf,e=+db.marg;
+ if(!(N>0))return{msg:'Indicá las personas esperadas (población) del evento.'};
+ if(n>N)return{msg:'Hay más respuestas ('+n+') que personas esperadas ('+N+'). Revisá los datos.'};
+ const min=minimo(N,z,e);return{N,n,min,ok:n>=min,tasa:n/N,mar:n?margen(n,N,z):null}}
+function gauge(m,big){if(m.msg)return'<p class="note" style="margin:0">'+esc(m.msg)+'</p>';
+ const pct=Math.min(100,m.n/m.min*100),c=m.ok?'#0F6E56':pct>=50?'#8A5A00':'#A32A1B',f=m.ok?'#1F8A5B':pct>=50?'#D9A400':'#C0392B';
+ return'<div class="gh"><b class="gp" style="color:'+c+'">'+fmt(pct,0)+' %</b><span>del mínimo necesario ('+m.n+' de '+m.min+' respuestas)</span></div>'+
+ '<div class="bar" role="progressbar" aria-label="Avance hacia el mínimo de respuestas" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(pct)+'"><i style="width:'+pct+'%;background:'+f+'"></i></div>'+
+ '<p style="margin:8px 0 0;font-weight:700;color:'+c+'">'+(m.ok?'Muestra representativa':'Faltan '+(m.min-m.n)+' respuestas')+'</p>'+
+ (big?'<p class="note" style="margin:6px 0 0">Respondió el '+fmt(m.tasa*100,1)+' % de la población. Margen de error con las respuestas actuales: '+(m.mar==null?'—':fmt(m.mar*100,1)+' %')+' (objetivo: '+fmt(db.marg*100,0)+' %).</p>':'')}
+
+/* ---- distancias ---- */
+const hav=(a,b,c,d)=>{const r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 12742*Math.asin(Math.sqrt(x))};
+function sedeXY(){const m=db.ev.coords.match(/(-?\d+\.\d+)\s*[,;]?\s*(-?\d+\.\d+)/);if(m)return[parseFloat(m[1]),parseFloat(m[2])];
+ const b=BM[norm(db.ev.sede)];return b?[b[1],b[2]]:null}
+function org(r){if(r.pais&&r.pais!=='Argentina')return{key:'p:'+norm(r.pais),name:r.pais,xy:null};
+ const c=r.capital,h=(c?BM:LM)[norm(c?r.barrio:r.localidad)],n=c?r.barrio:r.localidad;
+ return{key:(c?'b:':'l:')+norm(n),name:n+(c?', Córdoba capital':', Córdoba'),xy:h&&h[1]!=null?[h[1],h[2]]:null}}
+const dkey=r=>org(r).key+'|'+(r.medio==='avion'?'aire':'ruta');
+function distinct(){const u={};db.resp.forEach(r=>{const k=dkey(r);if(!u[k])u[k]={o:org(r),aire:r.medio==='avion'}});return u}
+async function osrm(a,b){const c=new AbortController(),t=setTimeout(()=>c.abort(),9000);
+ try{const j=await(await fetch('https://router.project-osrm.org/route/v1/driving/'+a[1]+','+a[0]+';'+b[1]+','+b[0]+'?overview=false',{signal:c.signal})).json();
+  return j.routes&&j.routes[0]?j.routes[0].distance/1000:null}catch(e){return null}finally{clearTimeout(t)}}
+$('rs').onclick=async()=>{const s=sedeXY();if(!s){$('dm').textContent='Ingresá y validá la dirección de la sede para calcular distancias.';return}
+ const sk=s.join(',');if(db.distSede!==sk){db.dist={};db.distSede=sk}
+ const u=distinct(),ks=Object.keys(u);let i=0;
+ for(const k of ks){i++;if(db.dist[k]&&db.dist[k].km!=null)continue;const o=u[k].o;
+  if(!o.xy){db.dist[k]={km:null,f:'manual'};continue}
+  $('dm').textContent='Calculando '+i+' de '+ks.length+'...';
+  const km=u[k].aire?hav(o.xy[0],o.xy[1],s[0],s[1]):await osrm(o.xy,s);
+  db.dist[k]={km,f:km==null?'sin resolver':u[k].aire?'línea recta (avión)':'OSRM (ruta)'};
+  if(!u[k].aire)await new Promise(r=>setTimeout(r,200))}
+ save();$('dm').textContent='';render()};
+$('lr').onclick=()=>{const s=sedeXY(),u=distinct();if(!s)return;
+ for(const k in u){const d=db.dist[k];if(u[k].o.xy&&(!d||d.km==null))db.dist[k]={km:hav(u[k].o.xy[0],u[k].o.xy[1],s[0],s[1]),f:'línea recta (aprox.)'}}
+ save();render()};
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset&&t.dataset.k){const v=parseFloat(String(t.value).replace(',','.'));db.dist[t.dataset.k]={km:v>=0?v:null,f:'manual'};save();render()}
+ if(t.dataset&&t.dataset.f){const v=parseFloat(String(t.value).replace(',','.'));if(v>=0)db.fact[t.dataset.f]=v;else delete db.fact[t.dataset.f];save();render()}});
+function dTabla(){const u=distinct(),s=sedeXY(),ks=Object.keys(u);if(!ks.length)return'';
+ return'<table><tr><th>Origen</th><th>Medio</th><th>km</th><th>Fuente</th><th></th></tr>'+ks.map(k=>{const d=db.dist[k]||{},o=u[k].o,
+  org_=o.xy?o.xy.join(','):encodeURIComponent(o.name),dst=s?s.join(','):'',
+  link=dst?'<a href="https://www.google.com/maps/dir/?api=1&amp;origin='+org_+'&amp;destination='+dst+'&amp;travelmode=driving" target="_blank" rel="noopener">Maps</a>':'';
+  return'<tr><td>'+esc(o.name)+'</td><td>'+(u[k].aire?'Avión':'Ruta')+'</td><td><input type="number" step="0.1" min="0" data-k="'+esc(k)+'" value="'+(d.km==null?'':Math.round(d.km*10)/10)+'"></td><td>'+esc(d.f||'pendiente')+'</td><td>'+link+'</td></tr>'}).join('')+'</table>'}
+
+/* ---- cálculo ---- */
+function calc(){
+ const g={};let falta=0;
+ // Crear todas las combinaciones válidas, incluso cuando todavía no hay respuestas.
+ COMBOS.forEach(t=>g[t]={t,encuestas:0,personas:0,kmVehiculo:0,pasajeroKm:0,actividadKm:0});
+ db.resp.forEach(x=>{
+  const t=tipoDe(x),a=g[t]||(g[t]={t,encuestas:0,personas:0,kmVehiculo:0,pasajeroKm:0,actividadKm:0});
+  const pax=Math.max(1,+x.personas||1);a.encuestas++;a.personas+=pax;
+  const d=db.dist[dkey(x)];if(!d||d.km==null){falta++;return}
+  if(isV(x.medio)){a.kmVehiculo+=d.km;a.actividadKm+=d.km}
+  else {a.pasajeroKm+=d.km*pax;a.actividadKm+=d.km*pax}
+ });
+ const rows=Object.values(g).sort((a,b)=>COMBOS.indexOf(a.t)-COMBOS.indexOf(b.t)).map(a=>{
+  const f=db.fact[a.t],km=isV(a.t.split('-')[0])?a.kmVehiculo:a.pasajeroKm;
+  return{...a,f,km,e:f==null?null:km*f,unidad:isV(a.t.split('-')[0])?'vehículo-km':'pasajero-km'}
+ });
+ const activos=rows.filter(r=>r.encuestas>0),completo=!falta&&activos.every(r=>r.f!=null);
+ const tot=activos.reduce((s,r)=>s+(r.e||0),0),personas=activos.reduce((s,r)=>s+r.personas,0),m=evalM();
+ const escala=personas>0&&m.N>0?m.N/personas:null;
+ return{rows,activos,falta,completo,tot,totEv:completo&&escala!=null?tot*escala:null,personas,escala};
+}
+function tablaPersonas(){
+ const by={auto:0,moto:0,colectivo:0,avion:0},resp={auto:0,moto:0,colectivo:0,avion:0};
+ db.resp.forEach(r=>{by[r.medio]=(by[r.medio]||0)+(isV(r.medio)?Math.max(1,+r.personas||1):1);resp[r.medio]=(resp[r.medio]||0)+1});
+ const total=Object.values(by).reduce((a,b)=>a+b,0);
+ return '<h3>Asistentes por medio de transporte</h3><table><tr><th>Medio</th><th class="num">Personas estimadas</th><th class="num">Encuestas/vehículos</th><th class="num">Participación</th></tr>'+Object.keys(MED).map(k=>'<tr><td>'+MED[k]+'</td><td class="num">'+fmt(by[k],0)+'</td><td class="num">'+fmt(resp[k],0)+'</td><td class="num">'+fmt(total?by[k]/total*100:0,1)+' %</td></tr>').join('')+'<tr><th>Total</th><th class="num">'+fmt(total,0)+'</th><th class="num">'+fmt(db.resp.length,0)+'</th><th class="num">100 %</th></tr></table>';
+}
+function rTabla(c){
+ const rows=c.rows.map(r=>'<tr><td>'+tipoTxt(r.t)+'</td><td class="num">'+fmt(r.encuestas,0)+'</td><td class="num">'+fmt(r.personas,0)+'</td><td class="num">'+fmt(r.km,2)+'</td><td><input type="number" step="0.001" min="0" data-f="'+r.t+'" value="'+(r.f==null?'':r.f)+'"></td><td class="num">'+(r.e==null?'—':fmt(r.e))+'</td></tr>').join('');
+ return tablaPersonas()+'<h3>Emisiones por combinación de transporte y combustible</h3><p class="note">Auto y moto: factor por vehículo-km. Colectivo y avión: factor por pasajero-km. En auto/moto, los acompañantes cuentan como personas, pero el vehículo se contabiliza una sola vez.</p>'+
+ '<div class="sc"><table><tr><th>Combinación</th><th class="num">Encuestas</th><th class="num">Personas</th><th class="num">Actividad (km)</th><th>Factor kg CO2e/km*</th><th class="num">Emisión (kg CO2e)</th></tr>'+rows+ '<tr><th colspan="5">Total acumulado de la muestra</th><th class="num">'+fmt(c.tot)+'</th></tr><tr><th colspan="5">Total extrapolado al evento</th><th class="num">'+(c.totEv==null?'—':fmt(c.totEv))+'</th></tr></table></div>'+
+ (c.falta?'<p class="err">Faltan distancias en '+c.falta+' respuestas. Calculalas o cargalas a mano arriba.</p>':'')+
+ '<p class="note">* Para auto/moto la unidad del factor es kg CO2e/vehículo-km; para colectivo/avión es kg CO2e/pasajero-km. Los factores iniciales son orientativos y editables. El total extrapolado escala las emisiones por personas representadas hasta la población esperada.</p>'+
+ (c.completo?'':'<p class="note">Completá las distancias y verificá los factores de las combinaciones que tengan respuestas para habilitar el cálculo completo.</p>');
+}
+/* ---- exportación ---- */
+function aoas(){const c=calc(),m=evalM(),e=db.ev;
+ const res=[...(db.prueba?[['DATOS DE PRUEBA: no usar como resultado']]:[]),['Evento',e.nombre],['Fecha',e.fecha],['Dirección de la sede',e.dirTxt||e.dir],['Personas esperadas (población)',m.N],['Respuestas válidas',m.n],['Respuestas mínimas',m.min],['Personas representadas en respuestas',c.personas],['Escala de extrapolación (población/personas representadas)',c.escala],['Confianza',Z[db.conf]],['Margen de error configurado',db.marg],[],
+ ['Combinación','Encuestas/vehículos','Personas','Actividad (vehículo-km o pasajero-km)','Factor','Unidad del factor','Emisión kg CO2e'],
+ ...c.rows.map(r=>[tipoTxt(r.t),r.encuestas,r.personas,Math.round(r.km*100)/100,r.f,r.unidad==='vehículo-km'?'kg CO2e/vehículo-km':'kg CO2e/pasajero-km',Math.round((r.e||0)*100)/100]),
+ ['TOTAL MUESTRA','','','','','',Math.round(c.tot*100)/100],['TOTAL EVENTO EXTRAPOLADO','','','','','',c.totEv==null?'':Math.round(c.totEv*100)/100]];
+ const enc=[['N.º','País','Capital','Barrio o localidad','Medio','Combustible','Personas en el vehículo','Distancia km','Km actividad','Unidad actividad','Factor','Emisión kg CO2e','Fuente de distancia'],...db.resp.map((r,i)=>{const d=db.dist[dkey(r)]||{},t=tipoDe(r),f=db.fact[t],p=Math.max(1,+r.personas||1),km=d.km==null?null:(isV(r.medio)?d.km:d.km*p),em=km==null||f==null?'':km*f;return[i+1,r.pais,r.capital==null?'':r.capital?'Sí':'No',r.barrio||r.localidad,MED[r.medio],r.combustible||'',p,d.km==null?'':Math.round(d.km*100)/100,km==null?'':Math.round(km*100)/100,isV(r.medio)?'vehículo-km':'pasajero-km',f==null?'':f,em===''?'':Math.round(em*100)/100,d.f||'']})];
+ const u=distinct(),dis=[['Origen','Medio','Distancia (km)','Fuente'],...Object.keys(u).map(k=>{const d=db.dist[k]||{};return[u[k].o.name,u[k].aire?'Avión':'Ruta',d.km==null?'':Math.round(d.km*100)/100,d.f||'']})];
+ const counts=Object.keys(MED).map(k=>{const n=db.resp.filter(r=>r.medio===k).reduce((a,r)=>a+(isV(k)?Math.max(1,+r.personas||1):1),0);return[MED[k],n]});
+ const max=Math.max(1,...counts.map(x=>x[1]));
+ const dash=[['INDICADORES DEL EVENTO'],['Evento',e.nombre],['Población esperada',m.N],['Encuestas recibidas',m.n],['Personas representadas',c.personas],['Emisiones acumuladas muestra (kg CO2e)',Math.round(c.tot*100)/100],['Emisiones estimadas evento (kg CO2e)',c.totEv==null?'':Math.round(c.totEv*100)/100],[],['DISTRIBUCIÓN DE ASISTENTES POR TRANSPORTE'],['Medio','Personas','Participación','Gráfico']];
+ counts.forEach(([name,n])=>dash.push([name,n,c.personas?Math.round(n/c.personas*1000)/10:'', '█'.repeat(Math.round(n/max*30))]));
+ dash.push([],['EMISIONES POR COMBINACIÓN'],['Combinación','kg CO2e','Gráfico']);
+ const maxE=Math.max(1,...c.rows.map(r=>r.e||0));c.rows.forEach(r=>dash.push([tipoTxt(r.t),Math.round((r.e||0)*100)/100,'█'.repeat(Math.round((r.e||0)/maxE*30))]));
+ const factors=[['Combinación','Factor inicial kg CO2e/km*','Unidad','Procedencia / supuesto','Factor aplicado al evento'],...COMBOS.map(k=>[tipoTxt(k),FACTORES[k].v,FACTORES[k].u,FACTORES[k].src,db.fact[k]]),[],['Nota metodológica','Los factores iniciales son referencias orientativas, no factores oficiales argentinos específicos para cada categoría vehicular. Revisar/ajustar antes de publicar inventario. Auto y moto por vehículo-km; colectivo y avión por pasajero-km.']];
+ return{res,enc,dis,dash,factors}}
+const Z={'1.645':'90 %','1.96':'95 %','2.576':'99 %'};
+function libro(){const a=aoas(),wb=XLSX.utils.book_new();
+ [['Dashboard',a.dash],['Resumen',a.res],['Detalle viajes',a.enc],['Factores',a.factors],['Distancias',a.dis]].forEach(x=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0]));
+ const ws=wb.Sheets['Dashboard'];ws['!cols']=[{wch:38},{wch:18},{wch:18},{wch:34}];
+ return wb}
+function libroEncuestas(){const wb=XLSX.utils.book_new(),e=db.ev;
+ const meta=[['Evento',e.nombre],['Fecha',e.fecha],['Dirección de la sede',e.dirTxt||e.dir],['Población esperada',+e.N||''],['Respuestas recibidas',db.resp.length]];
+ const rows=[['ID de respuesta','Evento','País','Capital','Barrio','Localidad','Medio de transporte','Combustible','Personas en el vehículo','Origen de carga'],
+ ...db.resp.map((r,i)=>[i+1,e.nombre,r.pais||'',r.capital==null?'':r.capital?'Sí':'No',r.barrio||'',r.localidad||'',tipoTxt(tipoDe(r)),r.combustible||'',r.personas||1,r.fuente||''])];
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(meta),'Evento');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Encuestas');
+ return wb}
+$('xenc').onclick=()=>{if(typeof XLSX==='undefined'){alert('No se pudo cargar la librería de Excel. Revisá tu conexión a internet.');return}
+ descargar(nombreArch('xlsx'),new Blob([XLSX.write(libroEncuestas(),{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}))};
+const nombreArch=ext=>'emisiones-'+(norm(db.ev.nombre).replace(/ /g,'-')||'evento')+'-'+(db.ev.fecha||'sin-fecha')+'.'+ext;
+function listo(){const c=calc();return c.completo&&evalM().ok}
+$('xl').onclick=()=>{if(typeof XLSX==='undefined'){$('xe').textContent='No se pudo cargar la librería de Excel (hace falta internet). Usá el CSV.';return}
+ $('xe').textContent='';descargar(nombreArch('xlsx'),new Blob([XLSX.write(libro(),{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'}))};
+$('cv').onclick=()=>{const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+ descargar(nombreArch('csv'),new Blob(['\uFEFF'+aoas().res.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'}))};
+
+/* ---- pantalla ---- */
+function render(){
+ $('cnt').innerHTML='<b>'+db.resp.length+'</b> respuestas ('+db.resp.filter(x=>x.fuente==='importado').length+' importadas, '+db.resp.filter(x=>x.fuente==='formulario').length+' del formulario).';
+ $('banner').classList.toggle('hidden',!db.prueba);
+ const e=db.ev;[['evn','nombre'],['evf','fecha'],['evN','N'],['evd','dir']].forEach(p=>{if(document.activeElement!==$(p[0]))$(p[0]).value=e[p[1]]});
+ $('cf').value=db.conf;$('mg').value=db.marg;
+ $('evm').textContent=e.dirTxt?'Dirección encontrada: '+e.dirTxt:(e.dirMsg||'');
+ $('evsel').innerHTML=ALL.events.map(x=>'<option value="'+x.id+'"'+(x.id===ALL.act?' selected':'')+'>'+esc(x.ev.nombre||'Evento sin nombre')+' — '+x.resp.length+' encuestas</option>').join('');
+ $('qev').innerHTML='Las respuestas se cargan en el evento: <b>'+esc(e.nombre||'Evento sin nombre')+'</b>.';
+ const m=evalM();
+ $('g1').innerHTML=gauge(m,true);$('g2').innerHTML=gauge(m,false);$('g3').innerHTML=gauge(m,false);
+ $('crit').innerHTML=m.min!=null?'Para una población de <b>'+m.N+'</b> personas, con <b>'+Z[db.conf]+'</b> de confianza y <b>'+fmt(db.marg*100,0)+' %</b> de margen de error, se necesitan al menos <b>'+m.min+'</b> respuestas ('+fmt(m.min/m.N*100,0)+' % de la población). Se usa la fórmula de tamaño de muestra para población finita con proporción 0,5.':'Indicá las personas esperadas para ver el mínimo de respuestas.';
+ $('fn').innerHTML=(e.nombre&&e.fecha)?'<b>'+esc(nombreArch('xlsx'))+'</b><br><span class="note">y, en CSV, '+esc(nombreArch('csv'))+'</span>':'Se arma con el nombre y la fecha del evento: <b>'+esc(nombreArch('xlsx'))+'</b>';
+ $('lk').textContent=!(+e.N>0)?'Primero completá el evento y las personas esperadas en la pestaña Evento.':m.msg?m.msg:m.ok?'':'Los cálculos se habilitan al llegar al 100 % del mínimo necesario.';
+ const ok=!!m.ok;$('unl').classList.toggle('hidden',!ok);
+ if(ok){$('dt').innerHTML=dTabla();const c=calc();$('rt').innerHTML=rTabla(c);$('xl').disabled=$('cv').disabled=!c.completo}}
+$('nuevo').onclick=()=>{if(confirm('Se elimina este evento con todas sus respuestas. ¿Seguir?')){ALL.events=ALL.events.filter(x=>x!==db);if(!ALL.events.length)ALL.events.push(nuevoEv());ALL.act=ALL.events[0].id;db=ALL.events[0];save();render()}};
+async function geocodificar(ev){const q=(db.ev.dir||'').trim();if(!q||(db.ev.coords&&!(ev&&ev.type==='click')))return;
+ $('evm').textContent='Buscando la dirección...';
+ const full=/c[oó]rdoba/i.test(q)?q:q+', Córdoba, Argentina',c=new AbortController(),tm=setTimeout(()=>c.abort(),9000);
+ try{const j=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&accept-language=es&q='+encodeURIComponent(full),{signal:c.signal})).json();
+  if(j.length){db.ev.coords=(+j[0].lat).toFixed(5)+', '+(+j[0].lon).toFixed(5);db.ev.dirTxt=j[0].display_name;db.ev.dirMsg=''}
+  else{db.ev.coords='';db.ev.dirTxt='';db.ev.dirMsg='No encontré esa dirección. Probá con calle, número, localidad y provincia.'}}
+ catch(e){db.ev.dirMsg='No pude consultar el buscador de direcciones. Revisá tu conexión e intentá nuevamente.'}
+ finally{clearTimeout(tm)}
+ save();render()}
+[['evn','nombre'],['evf','fecha'],['evN','N']].forEach(p=>{$(p[0]).oninput=()=>{db.ev[p[1]]=$(p[0]).value;save();render()}});
+$('evd').oninput=()=>{db.ev.dir=$('evd').value;db.ev.coords='';db.ev.dirTxt='';db.ev.dirMsg='';save();render()};
+$('evd').onchange=geocodificar;$('evb').onclick=geocodificar;$('evd').onkeydown=e=>{if(e.key==='Enter')geocodificar()};
+$('evsel').onchange=()=>{ALL.act=$('evsel').value;db=ALL.events.find(x=>x.id===ALL.act);save();render()};
+$('evnew').onclick=()=>{const n=nuevoEv();ALL.events.push(n);ALL.act=n.id;db=n;save();document.querySelector('[data-v=vEv]').click()};
+$('cf').onchange=()=>{db.conf=$('cf').value;save();render()};$('mg').onchange=()=>{db.marg=$('mg').value;save();render()};
+
+load();fill('bar',BARRIOS,'Elegí tu barrio');fill('loc',LOCS,'Elegí tu localidad');
+rad('gm','medio',[['auto','Auto'],['moto','Moto'],['colectivo','Colectivo'],['avion','Avión']]);rad('gcc','comb',[['nafta','Nafta'],['gasoil','Gasoil'],['gas','Gas']]);
+sync1();sync2();
+try{if(sessionStorage.getItem('ok'))entrar()}catch(e){}
+</script>
+</body>
+</html>

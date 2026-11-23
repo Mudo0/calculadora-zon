@@ -1,0 +1,68 @@
+# Maven / Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+replay_pid*
+
+# Build outputs
+out/
+dist/
+tmp/
+temp/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/
+nbbuild/
+nbdist/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment / local secrets
+.env
+.env.*
+!.env.example
+
+# Local config overrides (keep examples tracked)
+config/application.properties
+config/emission-factors.properties
+!config/application.example.properties
+!config/emission-factors.example.properties
+
+# Generated reports / runtime artifacts
+*.xlsx
+*.csv
+!samples/**/*.csv
+!samples/**/*.xlsx
+!src/test/resources/**/*.csv
+!src/test/resources/**/*.xlsx
+logs/
+
+# Local map data / services (large, local-only)
+maps/
+photon_data/
+*.osm.pbf
+*.osrm
+*.osrm.*
+osrm-data/
+
+# Packaging scratch
+packaging/work/
+*.zip
+*.tar.gz
+!.packaging/keep
