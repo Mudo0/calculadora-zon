@@ -1,10 +1,10 @@
-# Implementation Plan - ZON Calculadora (Increment 1)
+﻿# Implementation Plan - ZON Calculadora (Increment 1)
 
-> **Revision v4.** Stages 0-6 can be implemented one at a time. Adds native maps setup (Annex A), dockerized OSRM/Photon setup for development and easy deployment (Annex C), and the self-contained offline bundle (Annex B). **Docker is optional for dev/deploy of map services; the final client bundle remains Docker-free.** Attendance counting is outside the app.
+> **Revision v6.** Stages 0-6 can be implemented one at a time. Target deployment is **our own server**, supporting **Windows and Ubuntu**. Docker is an option, not a requirement. Adds native maps setup (Annex A), Dockerized deployment option (Annex C), and an optional self-contained offline bundle (Annex B). The motor/core is decoupled from OSRM runtime (Docker/native/compiled) through ports. Attendance counting is outside the app.
 
 ## 1. Purpose
 
-This document is the execution plan for building Increment 1 of the survey distance/consumption/emissions calculator described in `PRD – Calculadora de ITEC.md`. It defines what to build, in which order, with which contracts, defaults, and checks.
+This document is the execution plan for building Increment 1 of the survey distance/consumption/emissions calculator described in `PRD â€“ Calculadora de ITEC.md`. It defines what to build, in which order, with which contracts, defaults, and checks.
 
 It is **not** the LLD or ADR. The work is split in **stages**; each stage leaves something runnable and testable, so it can be implemented on its own (see section 16). Stages 0 and 1 are independent and can be done in parallel.
 
@@ -13,7 +13,7 @@ It is **not** the LLD or ADR. The work is split in **stages**; each stage leaves
 | Topic | Confirmed decision |
 |---|---|
 | Client | ITEC is the client. Do not use `itec` in artifact/package identifiers. |
-| Geography | Primarily Córdoba, Argentina; design must work for any region. |
+| Geography | Primarily CÃ³rdoba, Argentina; design must work for any region. |
 | Destination | Same destination for every row in an event; configured once per run/event. |
 | Primary objective | 1) route distance in km from survey origin to event destination, 2) fuel consumption, 3) carbon emissions. |
 | Row semantics | **1 row = 1 survey respondent = 1 trip/vehicle.** Other people who came in the same vehicle must not answer the survey; they are counted through `personas`. |
@@ -36,8 +36,9 @@ It is **not** the LLD or ADR. The work is split in **stages**; each stage leaves
 | Architecture | Hexagonal (Ports and Adapters): core/motor isolated, adapters for CLI/files/maps. |
 | Coordinates | `groupId=ar.zon`, `artifactId=zon-calculadora`, base package `ar.zon.calculadora`. |
 | Config format | `.properties`. |
-| Docker | **Not used anywhere** (neither development nor the client's machine). |
-| Deployment | **Self-contained offline bundle**: bundled JRE + app `.jar` + native `osrm-routed` + pre-built `.osrm` data + Photon (jar + index), so text geocoding also works offline. Must run on the client's machine **without Docker, without Java installed, without internet and without admin installation**. One bundle per target OS/CPU architecture (section 17, Annex B). |
+| Geocoder strategy | `PHOTON` default (text -> coordinates via Photon service). Alternatives: `FILE` (CSV `text;lat;lon`, deterministic/restricted sets) and `COORDINATES` (input already `lat,lon`, dev/test). |
+| Docker | **Optional deployment option**. The app and map services (OSRM + Photon) can run on our own server (Windows or Ubuntu), with or without Docker; see Annex C. Docker vs native/compiled OSRM is an operational choice behind the same HTTP contracts. |
+| Deployment | **Primary target: our own server, Windows + Ubuntu**. The calculator JAR and map services (OSRM + Photon) can be deployed as native processes or with Docker Compose (Annex C). Same app artifact/config contract; OS-specific scripts/runtime packaging where needed. **Optional secondary packaging:** self-contained offline bundle for restricted/offline machines, Docker-free (Annex B). |
 | Samples | `samples/` contains HTML mockups only; no canonical CSV/XLSX survey sample yet. |
 
 ## 3. PRD / ADR Delta (Must Be Applied During Implementation)
@@ -52,9 +53,9 @@ The PRD was written around fuel cost. This plan supersedes those parts for Incre
 | RNF-03/DoD 8 (500k rows) | Variable volume (tens to tens of thousands). Streaming mandatory; synthetic memory smoke tests at 5k and 50k without OOM. 500k is not a gate. |
 | Q-06 fuel price | Not applicable. |
 | DoD 5 hand-calculated fuel cost | Replace with hand-calculated consumption and emissions cases (using placeholder factors). |
-| ADR 0002 "Confirmación" #2 (500k-row load test) | Replaced by the 5k/50k smoke tests. Add a short addendum to ADR 0002. |
+| ADR 0002 "ConfirmaciÃ³n" #2 (500k-row load test) | Replaced by the 5k/50k smoke tests. Add a short addendum to ADR 0002. |
 | ADR 0002 stage 1 (generate the blank survey template) | Not part of Increment 1. This plan only covers reading responses and writing the report. |
-| ADR 0001 (maintain Docker containers or local processes) | This plan uses only local processes shipped in an offline bundle. No Docker. |
+| ADR 0001 (maintain Docker containers or local processes) | Server deployment may use Docker or native processes; Docker is optional. Annex C covers server/Docker deployment; Annex B covers optional Docker-free offline packaging. ADR 0001 should record both modes. |
 
 Keep PRD IDs in code/tests where useful, and record these deltas in `docs/prd-delta.md` (or a README section).
 
@@ -70,12 +71,14 @@ Keep PRD IDs in code/tests where useful, and record these deltas in `docs/prd-de
 - Per-row errors, summary (including total survey rows), local processing.
 - Motor/core independent from CLI.
 - Native (no Docker) setup guide for Photon and OSRM (Annex A).
-- Self-contained offline bundle and launcher that starts/stops the bundled services (section 17, Annex B).
+- Dockerized deployment option for app + OSRM/Photon on our own server, Windows + Ubuntu (Annex C).
+- Optional self-contained offline bundle and launcher that starts/stops bundled services (section 17, Annex B).
+- Project bootstrap artifacts: `.gitignore`, example config, synthetic samples, docs skeleton.
 
 ### Out of scope
 
 - REST API, desktop/web UI.
-- Docker (not used anywhere).
+- Docker as a mandatory requirement (Docker is supported as an optional deployment path; native process deployment must remain viable).
 - Fuel price/cost/currency.
 - Automatic OSM/factor updates.
 - Authentication, DB/history.
@@ -134,7 +137,7 @@ These names are the reference for code, tests and docs.
 | `StraightLineDistanceCalculator` | Haversine km | `core.distance` | `HaversineCalculator` (pure, lives in core) |
 | `EmissionFactorProvider` | Resolve factor by transport/fuel | `core.emissions` | `PropertiesEmissionFactorProvider` |
 
-`ConsumptionCalculator` and `EmissionCalculator` are plain core services, not ports. Haversine has no I/O but keeps its port so fallback orchestration and tests stay uniform. No `Clock`/`IdProvider` ports in Increment 1. Starting/stopping the bundled Photon/OSRM processes is **not** a core concern: it is an infra service (`infra.services.LocalServicesManager`) used only by the CLI composition root.
+`ConsumptionCalculator` and `EmissionCalculator` are plain core services, not ports. Haversine has no I/O but keeps its port so fallback orchestration and tests stay uniform. No `Clock`/`IdProvider` ports in Increment 1. Starting/stopping bundled Photon/OSRM processes is **not** a core concern: it is an infra service (`infra.services.LocalServicesManager`) used only by the CLI composition root. The core/motor never depends on Docker, compiled binaries, or process lifecycle; it only depends on ports. OSRM/Photon runtime mode (Docker, native, compiled) is a deployment/infra decision behind the same HTTP adapter contracts (`osrm.baseUrl`, `photon.baseUrl`, `services.mode=EXTERNAL`).
 
 ### 5.4 Core use case
 
@@ -146,13 +149,35 @@ These names are the reference for code, tests and docs.
 - emit progress through `ProgressListener`;
 - return `BatchResult`.
 
-### 5.5 Composition / wiring
+### 5.5 Geocoder strategy
+
+Geocoder = converts an origin text (e.g. `"Alta Gracia, Córdoba"`) to `lat,lon`.
+
+| Mode | How it works | Pros | Contras | Default/use |
+|---|---|---|---|---|
+| `PHOTON` | HTTP query to Photon (`/api`) using OSM index | Flexible, handles free text/locality names | Needs Photon service + index | **Default for own-server deployment** |
+| `FILE` | Local CSV lookup `text;lat;lon` | Deterministic, lightweight, no geocoding service | Only resolves preloaded places | Restricted/offline/bundle contingency |
+| `COORDINATES` | Input already provides `lat,lon` | No geocoding service, simplest | Not for free-text surveys | Dev/test or pre-geocoded data |
+
+The core depends on the `Geocoder` port only; Photon/FILE/COORDINATES are adapters selected by config.
+
+### 5.6 Composition / wiring
 
 - CLI builds `CalculationConfig` (file + CLI overrides).
 - CLI selects adapters by extension and config.
 - CLI injects adapters into the use case.
 - In `services.mode=BUNDLED`, the CLI first starts the bundled Photon/OSRM through `LocalServicesManager`, waits until they are healthy, and stops them when the run ends.
-- A future REST/desktop adapter reuses the same core.
+- Core never instantiates infra classes.
+
+### 5.7 Allowed dependencies (guardrail)
+
+| Layer | May depend on | Must not depend on |
+|---|---|---|
+| `core.*` | Java stdlib, core interfaces/types | CLI libs, FastCSV/FastExcel, HTTP client impl, OSRM/Photon JSON, filesystem/process |
+| `infra.*` | core ports + external libs | other infra adapters unnecessarily |
+| `cli.*` | core API + infra adapters + config parsing | business rules duplicated from core |
+
+Enforce with package conventions and simple architecture tests (ArchUnit/JUnit) in Stage 1 or 6.
 
 ## 6. Repository Structure
 
@@ -168,6 +193,19 @@ zon-calculadora/
     prd-delta.md
     maps-setup.md               # content of Annex A
     offline-bundle.md           # content of Annex B
+    deployment.md               # server/hosted deployment decisions and runbook
+    docker-maps.md              # content of Annex C / Docker deployment option
+    osrm-runtime-benchmark.md   # Docker vs native/compiled OSRM comparison (Stage 0 spike)
+  deploy/
+    docker/
+      docker-compose.yml        # optional: app + OSRM + Photon for server deploy
+      docker-compose.maps.yml   # optional: OSRM + Photon only
+      .env.example              # ports, data paths, image versions, app config
+      Dockerfile.app            # optional: calculator runtime image
+      osrm/
+        Dockerfile.preprocess   # optional: reproducible OSRM preprocess image
+      photon/
+        Dockerfile              # optional: pinned Photon runtime image
   samples/
     ...                         # existing mockups + synthetic csv/xlsx
   packaging/
@@ -201,10 +239,12 @@ zon-calculadora/
       unit/                     # core rules with fakes, no IO
       integration/              # adapters + wiring (*IT)
     test/resources/fixtures/
-  .gitignore                    # includes out/, target/, dist/, and any local map data
+  .gitignore                    # Java/Maven/IDE/OS/output/local config/map data
+  .gitattributes                # recommended: stable line endings for scripts/properties
+  .editorconfig                 # recommended: UTF-8, LF/CRLF policy, Java formatting basics
 ```
 
-Map data (hundreds of MB to GB) lives **outside** the repo (see Annexes A and B).
+Map data (hundreds of MB to GB) lives **outside** the repo (see Annexes A, B and C). Keep `deploy/docker/.env.maps` local-only; track `.env.maps.example`.
 
 ## 7. Maven and Dependencies
 
@@ -344,7 +384,8 @@ Notes:
 - `distance.mode` is the **only** mode switch. For development without map services use `geocoder.mode=COORDINATES` (or `FILE`) with `distance.mode=HAVERSINE`.
 - `BOTH`: the route distance feeds consumption/emissions; the straight-line distance is written to `distance_straight_km` for comparison.
 - `distance.decimals` only affects the **written** values. Totals are computed from unrounded values, so a total may differ slightly from the sum of the written rows. Document it.
-- `services.mode=BUNDLED` is used by the offline bundle (section 17). In that mode the app starts the services itself and `photon.baseUrl`/`osrm.baseUrl` are ignored.
+- `services.mode=EXTERNAL` covers both native local services and Dockerized services (Annex C). `photon.baseUrl`/`osrm.baseUrl` must point to the reachable endpoints.
+- `services.mode=BUNDLED` is used by the optional offline bundle (section 17), when selected. In that mode the app starts the bundled services itself and `photon.baseUrl`/`osrm.baseUrl` are ignored.
 - With `geocoder.mode=COORDINATES`, `origen` (and the destination) must look like `-31.4201,-64.1888` (`lat,lon`).
 
 ### 8.2 Emission/consumption factors
@@ -575,7 +616,7 @@ java -jar target/zon-calculadora-0.1.0-SNAPSHOT.jar \
   --input ./samples/input.csv \
   --output ./out/report.xlsx \
   --config ./config/application.properties \
-  --destination "Estadio Mario Alberto Kempes, Córdoba" \
+  --destination "Estadio Mario Alberto Kempes, CÃ³rdoba" \
   --event "Evento X"
 ```
 
@@ -638,10 +679,10 @@ Hand-calculated cases (placeholder factors; they validate formulas, not real val
 
 | Case | Calculation | Expected |
 |---|---|---|
-| AUTO NAFTA, 50 km | 50 × 10 / 100 = 5.0 l; 5.0 × 2.0 | 5.0 l, 10.0 kgCO2e |
-| AUTO GNC, 100 km | 100 × 10 / 100 = 10 m3; 10 × 2.0 | 10 m3, 20.0 kgCO2e |
-| MOTO NAFTA, 25 km | 25 × 4 / 100 = 1.0 l; 1.0 × 2.0 | 1.0 l, 2.0 kgCO2e |
-| COLECTIVO, 40 km, personas 3 | 40 × 3 × 0.1 | 12.0 kgCO2e, no consumption |
+| AUTO NAFTA, 50 km | 50 Ã— 10 / 100 = 5.0 l; 5.0 Ã— 2.0 | 5.0 l, 10.0 kgCO2e |
+| AUTO GNC, 100 km | 100 Ã— 10 / 100 = 10 m3; 10 Ã— 2.0 | 10 m3, 20.0 kgCO2e |
+| MOTO NAFTA, 25 km | 25 Ã— 4 / 100 = 1.0 l; 1.0 Ã— 2.0 | 1.0 l, 2.0 kgCO2e |
+| COLECTIVO, 40 km, personas 3 | 40 Ã— 3 Ã— 0.1 | 12.0 kgCO2e, no consumption |
 
 ### 15.3 Integration tests (`*IT`, `mvn verify`)
 
@@ -664,7 +705,8 @@ No real survey file exists. Create synthetic `samples/input-sample.csv` and `.xl
 ### 15.5 Manual / smoke checks
 
 - Offline: `geocoder.mode=COORDINATES` + `distance.mode=HAVERSINE`.
-- With local Photon/OSRM (Annex A): a known Córdoba trip; route km should be at or above the straight-line km; compare with a reference route within the agreed tolerance.
+- With local Photon/OSRM (Annex A or Annex C): a known CÃ³rdoba trip; route km should be at or above the straight-line km; compare with a reference route within the agreed tolerance.
+- Docker deployment smoke check (optional, Annex C): `docker compose -f deploy/docker/docker-compose.maps.yml up -d` brings services healthy; the app runs with `services.mode=EXTERNAL`.
 - Offline bundle on a clean machine with the network off (B.6).
 - Synthetic files at 5k and 50k rows: no OOM, acceptable runtime, constant memory (streaming).
 
@@ -674,39 +716,42 @@ Each stage lists its scope, how to try it, and when it is done. Every stage ends
 
 | Stage | Name | Depends on |
 |---|---|---|
-| 0 | Native map services + target-OS feasibility | - |
+| 0 | Deployment baseline + map services contracts | - |
 | 1 | Project skeleton + pure core | - |
 | 2 | End-to-end CSV flow, offline | 1 |
 | 3 | Real maps: Photon + OSRM adapters | 0, 2 |
 | 4 | XLSX support and CSV/XLSX parity | 2 (independent of 3) |
-| 5 | Offline bundle + bundled-services launcher | 0, 3, 4 |
-| 6 | Hardening, smoke tests, docs | 5 |
+| 5 | Optional offline bundle + bundled-services launcher | 0, 3, 4 |
+| 6 | Hardening, smoke tests, docs | 3, 4 (5 if bundle selected) |
 
-### Stage 0 - Native map services + target-OS feasibility (no Java code)
+### Stage 0 - Deployment baseline + map services contracts
 
-Goal: Photon (`localhost:2322`) and OSRM (`localhost:5000`) running natively (**no Docker**) with Argentina data, and proof that they can also run on the client's operating system.
+Goal: define and validate deployment on **our own server, supporting Windows and Ubuntu**. Photon/OSRM must be reachable through the same HTTP contracts. Docker is optional; native/compiled OSRM is a valid alternative behind the same adapter.
 
 Scope:
-1. Follow Annex A on the development machine (requirements, Photon, OSRM, verification).
-2. **Go/no-go on the target OS:** on the client's OS/architecture (a VM is fine), run `osrm-routed` with the generated `.osrm` files and Photon with a Java 21 runtime, with the network disabled (A.6, check 4). If this fails, stop and decide before writing more code.
-3. Record machine, RAM, disk, setup time and per-request latency in `docs/maps-setup.md`.
+1. Choose initial target environment: our own server, Windows and/or Ubuntu, OS/arch, Java 21 availability, Docker availability, disk/RAM/network policy. Record in `docs/deployment.md`.
+2. Validate map services using selected path: Annex C (Docker Compose, optional) or Annex A (native processes). Both must satisfy the same HTTP contracts used by adapters (`PhotonGeocoder`, `OsrmRouteCalculator`).
+3. **OSRM runtime spike (recommended):** run the same small benchmark against Docker OSRM and native/compiled OSRM where feasible (same data, same requests, same machine class). Measure p95 latency, startup, RAM, ops complexity, Windows/Ubuntu friction. Record in `docs/osrm-runtime-benchmark.md`. This compares infra runtimes only; no core changes.
 4. Save one sample Photon response and one OSRM response under `src/test/resources/fixtures/` (used later to write adapter tests).
+5. If optional offline bundle (Annex B) is in scope, do target-OS offline go/no-go from A.6 check 4 and record it. If not selected, record "bundle not selected" explicitly.
+6. Record environment, RAM, disk, setup time, per-request latency, and image/binary versions in docs.
 
-Done when: the checks in A.6 pass, including the target-OS check, and `docs/maps-setup.md` exists.
+Done when: selected server deployment path passes smoke checks on target OS(es), fixture responses are saved, OSRM runtime comparison is recorded (or explicitly deferred with reason), and deployment/bundle decisions are recorded.
 
 ### Stage 1 - Project skeleton + pure core
 
 Scope:
-1. Maven project, package structure, `.gitignore`, JUnit/AssertJ wired, `mvn test` green on the empty skeleton.
-2. `application.example.properties` and `emission-factors.example.properties` (8.1, 8.2).
-3. Config model + `.properties` loader + factors loader.
-4. Domain model, statuses, error codes.
-5. Normalization and validation rules (9.2-9.5).
-6. `HaversineCalculator`, `ConsumptionCalculator`, `EmissionCalculator`.
-7. Summary aggregation.
+1. Maven project, package structure, JUnit/AssertJ wired, `mvn test` green on the empty skeleton.
+2. Add project bootstrap artifacts: `.gitignore`, `.gitattributes` (recommended), `.editorconfig` (recommended), `README.md` skeleton, `docs/` skeleton, `config/application.example.properties`, `config/emission-factors.example.properties`.
+3. `.gitignore` must cover at least: `target/`, `out/`, `dist/`, `logs/`, IDE files (`.idea/`, `*.iml`, `.vscode/`, `.classpath`, `.project`, `.settings/`), OS files (`.DS_Store`, `Thumbs.db`), local env/config overrides (`.env*`, `config/application.properties`, `config/emission-factors.properties`), generated reports/runtime outputs, and local map data (`maps/`, `photon_data/`, `*.osm.pbf`, `*.osrm*`, `osrm-data/`). Keep tracked examples/synthetic fixtures with negation rules where needed.
+4. Config model + `.properties` loader + factors loader.
+5. Domain model, statuses, error codes.
+6. Normalization and validation rules (9.2-9.5).
+7. `HaversineCalculator`, `ConsumptionCalculator`, `EmissionCalculator`.
+8. Summary aggregation.
 
 Try it: unit tests only.
-Done when: all unit tests in 15.2 pass, including the four hand-calculated cases.
+Done when: all unit tests in 15.2 pass, including the four hand-calculated cases, and bootstrap artifacts exist with the expected ignore coverage.
 
 ### Stage 2 - End-to-end CSV flow, offline
 
@@ -736,10 +781,10 @@ Scope:
 3. `OsrmRouteCalculator` (`/route/v1/driving/{lon},{lat};{lon},{lat}?overview=false`; distance in meters, `code` != `Ok` means route failure).
 4. Fallback orchestration for `ROUTE`/`HAVERSINE`/`BOTH`; statuses and labels.
 5. Caches (geocode and route-by-origin), timeouts, retry, health-check, circuit breaker.
-6. Adapter tests using the fixtures saved in Stage 0; optional tagged smoke test against the real services (started manually, `services.mode=EXTERNAL`).
+6. Adapter tests using the fixtures saved in Stage 0; optional tagged smoke test against real services started manually or via Docker Compose (`services.mode=EXTERNAL`).
 
-Try it: run with `geocoder.mode=PHOTON`, `distance.mode=ROUTE` on a few Córdoba localities.
-Done when: route km are plausible against a reference (±10% suggested), a stopped OSRM triggers fallback per row, a stopped service at startup gives exit 2.
+Try it: bring up map services with Annex C (`docker compose -f deploy/docker/docker-compose.maps.yml up -d`) or Annex A, then run with `geocoder.mode=PHOTON`, `distance.mode=ROUTE` on a few Córdoba localities.
+Done when: route km are plausible against a reference (±10% suggested), a stopped OSRM triggers fallback per row, a stopped service at startup gives exit 2, and the same run works against Dockerized endpoints configured through `photon.baseUrl`/`osrm.baseUrl`.
 
 ### Stage 4 - XLSX support and parity
 
@@ -752,9 +797,9 @@ Scope:
 
 Done when: parity test green and `java -jar` works with `.xlsx` in and out.
 
-### Stage 5 - Offline bundle + bundled-services launcher
+### Stage 5 - Optional offline bundle + bundled-services launcher
 
-Goal: one folder (per OS/architecture) that the client unzips and runs, with no Docker, no Java installed, no admin rights and no internet (section 17, Annex B).
+Goal: optional folder (per OS/architecture) for restricted/offline machines, with no Docker, no Java installed, no admin rights and no internet (section 17, Annex B). Execute only when offline bundle packaging is selected.
 
 Scope:
 1. `infra.services.LocalServicesManager` + `services.*` config keys + `--services` flag, built with TDD around a fake child process: starts, waits for health, stops on success / failure / interrupt, port in use, missing file, start timeout.
@@ -764,21 +809,21 @@ Scope:
 5. Clean-machine, network-off test (B.6).
 
 Try it: unzip the bundle on a clean machine of the target OS, disconnect the network, run the launcher with the sample CSV and XLSX.
-Done when: both samples produce the expected reports in `ROUTE` mode, no orphan processes remain after the run or after Ctrl+C, and the ports are free afterwards.
+Done when: if selected, both samples produce the expected reports in `ROUTE` mode, no orphan processes remain after the run or after Ctrl+C, and ports are free afterwards. If not selected, record the decision and skip.
 
 ### Stage 6 - Hardening, smoke tests and docs
 
 Scope:
 1. Synthetic 5k and 50k runs (fakes) without OOM; note runtime and memory. Measure bundle startup time and RAM with real services.
 2. Final review of exit codes, error messages (Spanish) and progress output.
-3. README (setup, config, CLI, limitations, OSM attribution), `docs/prd-delta.md`, `docs/maps-setup.md`, `docs/offline-bundle.md`, ADR addenda (0002: load test; 0001: no Docker, local processes only).
+3. README (setup, config, CLI, limitations, OSM attribution), `docs/prd-delta.md`, `docs/deployment.md`, `docs/maps-setup.md`, `docs/docker-maps.md`, and `docs/offline-bundle.md` when bundle is selected; ADR addenda (0002: load test; 0001: server deployment with optional Docker/native processes).
 4. Walk through the Definition of Done (section 20).
 
 Done when: the DoD checklist is fully ticked.
 
-## 17. Self-contained Offline Bundle
+## 17. Optional Self-contained Offline Bundle
 
-The client's machine must need **nothing installed**: no Docker, no Java, no internet, no admin rights. Everything ships in one folder, built once per target OS and CPU architecture (a Windows x64 bundle does not run on Linux and vice versa).
+This packaging is **optional**. Primary deployment is our own or hosted server (Annex C / native processes). Use this only for restricted/offline target machines. When selected, the target machine needs **nothing installed**: no Docker, no Java, no internet, no admin rights. Everything ships in one folder, built once per target OS and CPU architecture.
 
 ### 17.1 Layout
 
@@ -826,10 +871,12 @@ Starting both services takes time (measure it; record in `docs/offline-bundle.md
 | Risk | Impact | Mitigation |
 |---|---|---|
 | No real survey sample | Wrong column assumptions | Configurable mapping and aliases; synthetic fixtures; validate with a client sample ASAP. |
-| Photon/OSRM setup friction (first time, big downloads) | Blocks end-to-end tests | Stage 0 first and in parallel; Annex A; offline mode so Stages 1-2 never wait. |
-| OSRM/Photon native on the client's OS | Bundle does not run there | Confirm target OS/arch early; Stage 0 proves it on that OS; clean offline machine test in Stage 5. |
-| Missing runtime libraries in the bundle | Works only on the dev machine | Ship every library; clean-machine, network-off test (B.6). |
-| Bundle size, startup time, RAM | Heavy deliverable; slow start for small files | Measure and record; lookup-file geocoder option (B.10); document client requirements. |
+| Photon/OSRM setup friction (first time, big downloads) | Blocks end-to-end tests | Stage 0 first and in parallel; Annex C Docker option for server/dev; Annex A for native; offline mode so Stages 1-2 never wait. |
+| Server environment mismatch (Windows/Ubuntu, Java, Docker, ports, firewall) | Deployment fails or is insecure | Confirm target environment early; document in `docs/deployment.md`; smoke test on Windows and Ubuntu target-like hosts. |
+| Docker unavailable or undesired on target server | Docker-only plan blocks deploy | Keep Docker optional; support native Java process + native/Dockerized map services as configured. Compare Docker vs native/compiled OSRM in Stage 0 spike. |
+| OSRM/Photon native on target OS (if bundle selected) | Bundle does not run there | Confirm target OS/arch early; Stage 0 go/no-go; clean offline machine test in Stage 5. |
+| Missing runtime libraries in bundle (if selected) | Works only on build machine | Ship every library; clean-machine, network-off test (B.6). |
+| Bundle size, startup time, RAM (if selected) | Heavy deliverable; slow start for small files | Measure and record; lookup-file geocoder option (B.10); document requirements. |
 | Geocoding ambiguity (locality names repeat) | Wrong km/emissions | Location bias and optional `bbox`; deterministic selection; record chosen label. |
 | Locality-level origins | Distances are approximate (centroid of the place) | Document the limitation in README. |
 | Placeholder emission factors | Numbers mistaken for real | `PLACEHOLDER_NOT_REAL` source, `factor_is_placeholder` column, summary warning. |
@@ -843,16 +890,18 @@ Starting both services takes time (measure it; record in `docs/offline-bundle.md
 
 1. Provide a real anonymized CSV/XLSX sample; update mapping defaults.
 2. Confirm canonical transport labels used by the client (`auto/moto/colectivo/bici/pie` or others).
-3. Confirm COLECTIVO attribution: `km × personas × factor_per_passenger_km` (current default).
+3. Confirm COLECTIVO attribution: `km Ã— personas Ã— factor_per_passenger_km` (current default).
 4. Confirm default auto fuel when missing (`NAFTA` assumed).
 5. Provide an official source for emission and consumption factors (placeholders until then).
-6. Confirm tolerance for route distance validation (suggest ±10%).
-7. Confirm the client's **operating system and CPU architecture** (for example Windows x64 or Linux x64). One bundle is built per OS/arch.
-8. Confirm the minimum hardware of the client's machine (RAM, free disk); measured values go into `docs/offline-bundle.md`.
-9. Decide the bundled geocoder: Photon (any free text) or a `FILE` lookup of known localities (smaller and simpler, less flexible; B.10).
-10. Decide the source of `osrm-routed`: build from source (full control) or a prebuilt self-contained build from a third party (faster; verify checksum and license).
+6. Confirm tolerance for route distance validation (suggest Â±10%).
+7. Confirm target deployment environment: **our own server**, Windows and Ubuntu support scope, Java 21 runtime, Docker availability/policy, ports, firewall, disk/RAM. Record in `docs/deployment.md`.
+8. Run OSRM runtime spike: Docker vs native/compiled on Windows/Ubuntu where feasible; choose default per environment. Keep motor decoupled (HTTP port contracts only). Record in `docs/osrm-runtime-benchmark.md`.
+9. Confirm deployment mode: Docker Compose, native processes, or hybrid (app native + maps Docker/native). Docker optional.
+10. Confirm whether optional offline bundle is required. If yes: confirm target OS/arch and minimum hardware; record in `docs/offline-bundle.md`.
+11. Geocoder strategy: `PHOTON` default for server. `FILE`/`COORDINATES` remain supported for restricted/dev cases (B.10 / 8.1).
+12. Decide source of `osrm-routed` for native/bundle packaging: build from source or prebuilt self-contained build (verify checksum and license).
 
-Confirmed and closed: fixed destination per run, row = respondent = vehicle, personas range 1-5 configurable, EV out, no cost, no 500k target, no Docker, attendance counting outside the app.
+Confirmed and closed: fixed destination per run, row = respondent = vehicle, personas range 1-5 configurable, EV out, no cost, no 500k target, deployment target is our own server with Windows + Ubuntu support, Docker optional, motor decoupled from OSRM runtime via ports, `PHOTON` default geocoder strategy, offline bundle optional/Docker-free, attendance counting outside the app.
 
 ## 20. Definition of Done
 
@@ -870,21 +919,22 @@ Confirmed and closed: fixed destination per run, row = respondent = vehicle, per
 - [ ] Synthetic 5k and 50k runs complete without OOM.
 - [ ] Config externalized; no secrets; local processing only.
 - [ ] `mvn verify` green; fat jar runs with `java -jar`.
-- [ ] The offline bundle runs on a clean machine of the target OS with **no Java, no Docker, no admin rights and no network**, and leaves no orphan processes.
-- [ ] README, `docs/prd-delta.md`, `docs/maps-setup.md`, `docs/offline-bundle.md` written; OSM attribution included.
+- [ ] Server deployment path documented and smoke-tested on Windows and/or Ubuntu target-like environment (Docker optional; native/compiled OSRM path evaluated).
+- [ ] If offline bundle selected: it runs on a clean machine of the target OS with **no Java, no Docker, no admin rights and no network**, and leaves no orphan processes.
+- [ ] README, `docs/prd-delta.md`, `docs/deployment.md`, `docs/maps-setup.md`, `docs/docker-maps.md` written; `docs/offline-bundle.md` written when bundle selected; OSM attribution included.
 
 ---
 
 # Annex A - Native map services on the development machine (becomes `docs/maps-setup.md`)
 
-**No Docker anywhere.** This annex is for the machine where you build and test (it needs internet for the downloads). The same pieces are later copied into the offline bundle (Annex B).
+**Native/no-Docker setup path.** This annex is for machines where you build, test, or run map services as native processes (internet needed for downloads/preprocess). The same pieces can be copied into the optional offline bundle (Annex B) or used in native server deployment.
 
 ## A.0 What you are installing
 
 - **Photon**: a geocoder. Turns text ("Alta Gracia") into coordinates. A Java program plus a downloaded search index.
 - **OSRM**: a routing engine. Turns two coordinates into road distance. Native programs (`osrm-extract`, `osrm-partition`, `osrm-customize`, `osrm-routed`) plus an OpenStreetMap extract that you pre-process once into `.osrm` files.
 
-Both run as small local web servers (`localhost:2322` and `localhost:5000`). Downloads and preparation are one-time; afterwards everything works offline. Data comes from OpenStreetMap (© OpenStreetMap contributors, ODbL).
+Both run as small local web servers (`localhost:2322` and `localhost:5000`). Downloads and preparation are one-time; afterwards everything works offline. Data comes from OpenStreetMap (Â© OpenStreetMap contributors, ODbL).
 
 ## A.1 Requirements
 
@@ -984,7 +1034,7 @@ Rename the result base name if you want (`argentina.osrm*`), but keep all genera
 ```bash
 ~/zon-maps/tools/osrm-routed --algorithm mld --ip 127.0.0.1 --port 5000 argentina-latest.osrm
 ```
-In another terminal (coordinates are **longitude,latitude**; Córdoba city to Villa Carlos Paz):
+In another terminal (coordinates are **longitude,latitude**; CÃ³rdoba city to Villa Carlos Paz):
 ```bash
 curl "http://localhost:5000/route/v1/driving/-64.1888,-31.4201;-64.4978,-31.4241?overview=false"
 ```
@@ -1004,10 +1054,10 @@ Facts to keep in mind:
 
 ## A.6 Verification checklist (Stage 0 is done when all four pass)
 
-1. `curl "http://localhost:2322/api?q=Alta%20Gracia&limit=3"` returns features with coordinates inside Córdoba province.
+1. `curl "http://localhost:2322/api?q=Alta%20Gracia&limit=3"` returns features with coordinates inside CÃ³rdoba province.
 2. `curl "http://localhost:5000/route/v1/driving/-64.1888,-31.4201;-64.4978,-31.4241?overview=false"` returns `"code":"Ok"` with a plausible distance.
 3. Latency is acceptable. Measure with `curl -s -o /dev/null -w "%{time_total}\n" "<url>"` and record it in `docs/maps-setup.md`.
-4. **Target-OS check:** on a machine (or VM) with the client's OS/architecture, **with the network disabled and no Java or Docker installed**, `osrm-routed` serves the `.osrm` files and Photon runs with the runtime copied from your build (A.1), and checks 1 and 2 pass there.
+4. **Target-OS check (only if optional offline bundle is selected):** on a machine (or VM) with the target OS/architecture, **with the network disabled and no Java or Docker installed**, `osrm-routed` serves the `.osrm` files and Photon runs with the runtime copied from your build (A.1), and checks 1 and 2 pass there.
 
 ## A.7 Troubleshooting
 
@@ -1030,7 +1080,7 @@ Facts to keep in mind:
 - Map data ages. Updating is manual: re-download, re-process (OSRM) or swap the index (Photon), then rebuild the bundle (B.9).
 - The Argentina-only extract cannot route trips that start abroad; those rows use the labeled Haversine fallback.
 - Locality-level origins resolve to one point per place, so distances are approximate by nature.
-- Attribution: "Map data © OpenStreetMap contributors (ODbL)" in README and delivered docs.
+- Attribution: "Map data Â© OpenStreetMap contributors (ODbL)" in README and delivered docs.
 
 ## A.9 Matching config keys (EXTERNAL mode)
 
@@ -1044,11 +1094,11 @@ distance.mode=ROUTE
 
 ---
 
-# Annex B - Self-contained offline bundle (becomes `docs/offline-bundle.md`)
+# Annex B - Optional self-contained offline bundle (becomes `docs/offline-bundle.md`)
 
 ## B.0 Goal
 
-A folder the client unzips and runs on a machine with **no Docker, no Java, no internet and no admin rights**. It contains the bundled JRE, the app jar, native `osrm-routed` with its `.osrm` data, and Photon (jar + index) running on the same JRE. One bundle per OS and CPU architecture. Built on a machine with internet (the build machine), used on machines without it.
+Optional packaging for restricted/offline machines. A folder that runs on a machine with **no Docker, no Java, no internet and no admin rights**. It contains the bundled JRE, the app jar, native `osrm-routed` with its `.osrm` data, and Photon (jar + index) running on the same JRE. One bundle per OS and CPU architecture. Primary deployment remains server-based (own/hosted), with Docker optional.
 
 ## B.1 Layout
 
@@ -1122,7 +1172,7 @@ Bundle size (zip and unpacked), time from launch to both services ready, RAM use
 
 ## B.8 Licenses and attribution
 
-Ship a `licenses/` folder with the licenses of the runtime, OSRM and Photon, and the line "Map data © OpenStreetMap contributors (ODbL)". Review the license of every third-party binary you redistribute.
+Ship a `licenses/` folder with the licenses of the runtime, OSRM and Photon, and the line "Map data Â© OpenStreetMap contributors (ODbL)". Review the license of every third-party binary you redistribute.
 
 ## B.9 Updating map data
 
@@ -1130,4 +1180,259 @@ On the build machine: re-download the extract and the Photon index, re-run A.4.3
 
 ## B.10 Lighter alternative: no Photon
 
-If bundle size, startup time or RAM are a problem and the origins are a known set of Córdoba localities, bundle a lookup file (`geocoder.mode=FILE`, columns `text;lat;lon`) instead of Photon. The bundle shrinks and becomes fully deterministic, but any place not in the file gives `LOCATION_NOT_FOUND`. Decide with the client (open item 9).
+If bundle size, startup time or RAM are a problem and the origins are a known set of CÃ³rdoba localities, bundle a lookup file (`geocoder.mode=FILE`, columns `text;lat;lon`) instead of Photon. The bundle shrinks and becomes fully deterministic, but any place not in the file gives `LOCATION_NOT_FOUND`. Decide with the client (open item 9).
+
+
+
+
+
+
+---
+
+# Annex C - Dockerized server deployment option (app + OSRM + Photon) (becomes `docs/docker-maps.md` / `docs/deployment.md`)
+
+## C.0 Goal
+
+Provide a **simple, reproducible Docker Compose option** for deploying on our own server or a hosted server. It covers OSRM and Photon and may also run the Java calculator. Docker is **optional**: the same contracts must work with native processes. It does **not** replace the optional Docker-free offline bundle (Annex B).
+
+## C.1 When to use which path
+
+| Path | Use when | Docker | Offline after setup |
+|---|---|---:|---:|
+| Annex C (this) | Own/hosted server deploy, dev, CI smoke | Optional (yes in this annex) | Depends on volumes/data cache |
+| Annex A | Native local setup, debugging native binaries, preparing bundle assets | No | Yes, once installed |
+| Annex B | Optional restricted/offline delivery | No | Yes |
+
+## C.2 Prerequisites
+
+- Docker Engine/Desktop with Docker Compose v2 (docker compose version).
+- Disk: ~8-15 GB free for Argentina OSM extract, OSRM generated files, Photon index, and images (measure and record actual value).
+- RAM: 8 GB minimum recommended; OSRM preprocessing and Photon import can need more. Record actual peak.
+- Internet for first-time image pull and data download.
+
+## C.3 Directory layout
+
+Create these paths (they can live outside the repo; keep large data out of git):
+
+`	ext
+deploy/docker/
+  docker-compose.maps.yml
+  .env.maps.example
+  .env.maps                  # local only, gitignored
+data/maps/                   # local only, gitignored
+  osrm/
+    argentina-latest.osm.pbf
+    argentina.osrm*          # generated
+  photon/
+    photon_data/             # generated/imported
+`
+
+Add to .gitignore: deploy/docker/.env.maps, data/maps/, *.osm.pbf, *.osrm, *.osrm.*, photon_data/.
+
+## C.4 Environment file (deploy/docker/.env.maps.example)
+
+`dotenv
+# Host ports exposed to the calculator/app
+OSRM_PORT=5000
+PHOTON_PORT=2322
+
+# Data paths (relative to deploy/docker or absolute). Keep outside git.
+OSRM_DATA_DIR=../../data/maps/osrm
+PHOTON_DATA_DIR=../../data/maps/photon
+
+# PBF file name inside OSRM_DATA_DIR
+OSRM_PBF=argentina-latest.osm.pbf
+OSRM_BASE=argentina
+
+# Image pins - replace with tested versions/tags before release; record in docs/docker-maps.md
+OSRM_IMAGE=osrm/osrm-backend:latest
+PHOTON_IMAGE=rtuszik/photon-docker:latest
+
+# Optional Photon settings
+PHOTON_COUNTRY_CODE=ar
+PHOTON_JAVA_OPTS=-Xms512m -Xmx2g
+`
+
+Copy to .env.maps and adjust values. **Do not commit .env.maps.**
+
+## C.5 OSRM preprocessing (one-time per OSM data version)
+
+OSRM needs preprocess files before osrm-routed can serve routes. Run these one-off containers from deploy/docker/ with the same OSRM_IMAGE:
+
+`ash
+# 1) Download Argentina extract (Geofabrik). Pin a dated file for reproducibility.
+mkdir -p ../../data/maps/osrm
+curl -L -o ../../data/maps/osrm/argentina-latest.osm.pbf \
+  https://download.geofabrik.de/south-america/argentina-latest.osm.pbf
+
+# 2) Extract
+docker run --rm -t -v "C:\Users\mateo\Desktop\Calculadora ITEC\batch-encuestas/../../data/maps/osrm:/data"  \
+  osrm-extract -p /opt/car.lua /data/argentina-latest.osm.pbf
+
+# 3) Partition
+docker run --rm -t -v "C:\Users\mateo\Desktop\Calculadora ITEC\batch-encuestas/../../data/maps/osrm:/data"  \
+  osrm-partition /data/argentina-latest.osrm
+
+# 4) Customize
+docker run --rm -t -v "C:\Users\mateo\Desktop\Calculadora ITEC\batch-encuestas/../../data/maps/osrm:/data"  \
+  osrm-customize /data/argentina-latest.osrm
+`
+
+PowerShell equivalent:
+
+`powershell
+New-Item -ItemType Directory -Force ../../data/maps/osrm | Out-Null
+Invoke-WebRequest -Uri https://download.geofabrik.de/south-america/argentina-latest.osm.pbf -OutFile ../../data/maps/osrm/argentina-latest.osm.pbf
+docker run --rm -t -v "C:\Users\mateo\Desktop\Calculadora ITEC\batch-encuestas/../../data/maps/osrm:/data"  osrm-extract -p /opt/car.lua /data/argentina-latest.osm.pbf
+docker run --rm -t -v "C:\Users\mateo\Desktop\Calculadora ITEC\batch-encuestas/../../data/maps/osrm:/data"  osrm-partition /data/argentina-latest.osrm
+docker run --rm -t -v "C:\Users\mateo\Desktop\Calculadora ITEC\batch-encuestas/../../data/maps/osrm:/data"  osrm-customize /data/argentina-latest.osrm
+`
+
+Notes:
+- Use the **same OSRM image/version** for preprocess and runtime.
+- car.lua is inside the official OSRM backend image at /opt/car.lua.
+- Preprocess can take several minutes and significant RAM/CPU. If killed, increase Docker memory.
+
+## C.6 Docker Compose file (deploy/docker/docker-compose.maps.yml)
+
+`yaml
+name: zon-maps
+
+services:
+  osrm:
+    image: 
+    command: osrm-routed --algorithm mld /data/.osrm
+    ports:
+      - ":5000"
+    volumes:
+      - :/data:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- 'http://localhost:5000/route/v1/driving/-64.1888,-31.4201;-64.1888,-31.4201?overview=false' | grep -q 'Ok'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  photon:
+    image: 
+    ports:
+      - ":2322"
+    volumes:
+      - :/photon/data
+    environment:
+      - COUNTRY_CODE=
+      - JAVA_OPTS=
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- 'http://localhost:2322/api?q=Cordoba&limit=1' | grep -q 'features'"]
+      interval: 20s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+`
+
+Notes:
+- Photon image/tag and env vars must be validated against the selected image documentation before implementation; pin a known-good tag. If the team chooses a different Photon image, keep the same external contract: HTTP on port 2322 with /api.
+- For production-like deploys, bind ports to localhost or a private network; do not expose public map endpoints without access control.
+- 
+estart: unless-stopped is appropriate for dev/deploy; disable in CI if needed.
+
+## C.7 Step-by-step: bring up services
+
+`ash
+cd deploy/docker
+cp .env.maps.example .env.maps
+# edit .env.maps if needed
+
+# Preprocess OSRM once (C.5)
+# Start services
+docker compose --env-file .env.maps -f docker-compose.maps.yml up -d
+
+# Check status
+docker compose --env-file .env.maps -f docker-compose.maps.yml ps
+docker compose --env-file .env.maps -f docker-compose.maps.yml logs -f --tail=100
+`
+
+Stop:
+
+`ash
+docker compose --env-file .env.maps -f docker-compose.maps.yml down
+`
+
+Reset data (destructive, local only):
+
+`ash
+docker compose --env-file .env.maps -f docker-compose.maps.yml down -v
+# then remove data/maps/osrm and data/maps/photon contents as needed
+`
+
+## C.8 Verification checklist
+
+Run after up -d:
+
+`ash
+# OSRM route
+curl "http://localhost:5000/route/v1/driving/-64.1888,-31.4201;-64.4992,-31.4201?overview=false"
+
+# Photon geocode
+curl "http://localhost:2322/api?q=Kempes%20Cordoba&limit=3"
+`
+
+Expected:
+- OSRM returns JSON with code: "Ok" and 
+outes[0].distance in meters.
+- Photon returns GeoJSON eatures with coordinates [lon,lat].
+- docker compose ps shows both services healthy.
+
+## C.9 App configuration for Dockerized maps
+
+Use services.mode=EXTERNAL and point to Compose endpoints:
+
+`properties
+services.mode=EXTERNAL
+geocoder.mode=PHOTON
+distance.mode=ROUTE
+photon.baseUrl=http://localhost:2322
+osrm.baseUrl=http://localhost:5000
+healthcheck.enabled=true
+`
+
+For a remote deploy, replace localhost with the deploy host/DNS reachable from the machine running the calculator. Keep credentials/network access out of this plan if not needed; do not expose unauthenticated services publicly.
+
+## C.10 Operational notes
+
+- **Pin image versions** before implementation/release. latest is acceptable only for initial spike; record tested tags in docs/docker-maps.md.
+- **Same OSRM version** must be used for preprocess and runtime.
+- **Photon index compatibility** matters; use the image/version flow documented by the selected Photon image.
+- **Data updates**: download new PBF/index, rerun preprocess/import, restart compose, smoke test, record data date in data/maps/VERSION.txt or docs.
+- **Resource limits**: add Compose deploy.resources or Docker Desktop limits if needed; measure before setting hard caps.
+- **Logs**: docker compose logs; avoid logging full survey rows.
+- **Backups**: back up generated OSRM/Photon data if rebuild time is costly.
+- **Security**: bind to localhost/private network; no public exposure by default; no secrets in committed files.
+
+## C.11 Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| OSRM container exits immediately | Missing/invalid .osrm files or wrong base name | Re-run C.5; check volume mount and OSRM_BASE. |
+| OSRM NoRoute | Bad coords, outside extract, lat/lon swapped | Verify lon,lat; confirm Argentina extract; check fallback behavior. |
+| Photon unhealthy / empty results | Index not ready, wrong image env, insufficient memory | Check logs; increase PHOTON_JAVA_OPTS; validate image docs and country/data config. |
+| Port conflict | 2322/5000 already used | Change OSRM_PORT/PHOTON_PORT in .env.maps and app config. |
+| Slow first startup | Photon index load / OSRM mmap warmup | Wait for healthcheck; record startup time. |
+| Preprocess OOM/killed | Docker memory limit too low | Increase Docker memory; rerun preprocess. |
+| App gets connection refused | Services not healthy or wrong baseUrl | Check docker compose ps, healthchecks, and photon.baseUrl/osrm.baseUrl. |
+
+## C.12 Definition of done for Docker maps setup
+
+- [ ] deploy/docker/docker-compose.maps.yml and .env.maps.example exist and are documented.
+- [ ] .gitignore excludes local env/data/map artifacts.
+- [ ] OSRM preprocess steps run successfully on a clean machine with Docker.
+- [ ] docker compose up -d makes both services healthy.
+- [ ] OSRM and Photon smoke checks pass.
+- [ ] Calculator runs against Dockerized endpoints with services.mode=EXTERNAL.
+- [ ] Image tags, data source/date, RAM/disk, and startup time recorded in docs/docker-maps.md.
+
+
+
+
