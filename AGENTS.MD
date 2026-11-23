@@ -1,5 +1,11 @@
 # ZON development guidelines
 
+## Implementation plan
+
+- Always read the root `PLAN-IMPLEMENTACION.md` before starting any task in
+  this repository. Use it to identify the relevant stage, package boundaries,
+  conventions, and acceptance checks for the requested work.
+
 ## Language
 
 - Use English for new Java identifiers and test names.
