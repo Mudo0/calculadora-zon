@@ -50,18 +50,24 @@ public final class PropertiesEmissionFactorProvider implements EmissionFactorPro
 
         Map<String, EmissionFactor> loaded = new HashMap<>();
         attributes.forEach((key, values) -> {
-            String basisText = values.get("basis");
-            if (basisText == null) {
-                return;
+            String basisText = required(values, "basis", key);
+            FactorBasis basis;
+            try {
+                basis = FactorBasis.valueOf(basisText.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                throw invalid(key + " tiene basis desconocido: " + basisText);
             }
+            boolean vehicle = basis == FactorBasis.VEHICLE_KM;
+            boolean passenger = basis == FactorBasis.PASSENGER_KM;
+            String fuelUnit = vehicle ? required(values, "fuel_unit", key) : values.getOrDefault("fuel_unit", "");
             String source = values.getOrDefault("source", "");
             loaded.put(key, new EmissionFactor(
                     key,
-                    FactorBasis.valueOf(basisText.toUpperCase(Locale.ROOT)),
-                    values.getOrDefault("fuel_unit", ""),
-                    number(values, "consumption_per_100km"),
-                    number(values, "kgco2e_per_fuel_unit"),
-                    number(values, "kgco2e_per_passenger_km"),
+                    basis,
+                    fuelUnit,
+                    number(values, "consumption_per_100km", key, vehicle),
+                    number(values, "kgco2e_per_fuel_unit", key, vehicle),
+                    number(values, "kgco2e_per_passenger_km", key, passenger),
                     source,
                     source.startsWith("PLACEHOLDER")));
         });
@@ -74,8 +80,35 @@ public final class PropertiesEmissionFactorProvider implements EmissionFactorPro
         return Optional.ofNullable(factors.get(key));
     }
 
-    private static double number(Map<String, String> values, String attribute) {
+    private static String required(Map<String, String> values, String attribute, String factorKey) {
         String value = values.get(attribute);
-        return value == null || value.isBlank() ? 0.0 : Double.parseDouble(value);
+        if (value == null || value.isBlank()) {
+            throw invalid(factorKey + " requiere " + attribute);
+        }
+        return value;
+    }
+
+    private static double number(Map<String, String> values, String attribute, String factorKey, boolean required) {
+        String value = values.get(attribute);
+        if (value == null || value.isBlank()) {
+            if (required) {
+                throw invalid(factorKey + " requiere " + attribute);
+            }
+            return 0.0;
+        }
+        double parsed;
+        try {
+            parsed = Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            throw invalid(factorKey + "." + attribute + " debe ser un número");
+        }
+        if (!Double.isFinite(parsed) || parsed < 0) {
+            throw invalid(factorKey + "." + attribute + " debe ser finito y no negativo");
+        }
+        return parsed;
+    }
+
+    private static InvalidConfigurationException invalid(String detail) {
+        return new InvalidConfigurationException(ErrorCode.INVALID_CONFIG, detail);
     }
 }

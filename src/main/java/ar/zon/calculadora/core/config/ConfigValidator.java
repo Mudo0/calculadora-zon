@@ -55,6 +55,10 @@ public final class ConfigValidator {
         if (hasLat != hasLon) {
             throw invalid("destination.lat y destination.lon deben indicarse juntos");
         }
+        if (hasLat && (!Double.isFinite(config.event().destinationLat())
+                || !Double.isFinite(config.event().destinationLon()))) {
+            throw invalid("destination.lat/destination.lon deben ser números finitos");
+        }
         if (hasLat && (Math.abs(config.event().destinationLat()) > 90
                 || Math.abs(config.event().destinationLon()) > 180)) {
             throw invalid("destination.lat/destination.lon fuera de rango");

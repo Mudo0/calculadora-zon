@@ -94,4 +94,15 @@ class PropertiesConfigLoaderTest {
 
         ConfigValidator.requireDestination(config);
     }
+
+    @Test
+    void rejectsNonFiniteDestinationCoordinates() {
+        for (String value : new String[] {"NaN", "Infinity", "-Infinity"}) {
+            assertThatThrownBy(() -> new PropertiesConfigLoader()
+                    .load(new StringReader("destination.lat=" + value + "\ndestination.lon=-64.1888")))
+                    .isInstanceOf(InvalidConfigurationException.class)
+                    .extracting("code")
+                    .isEqualTo(ErrorCode.INVALID_CONFIG);
+        }
+    }
 }
