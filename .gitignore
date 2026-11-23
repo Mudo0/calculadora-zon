@@ -39,6 +39,7 @@ Desktop.ini
 .env
 .env.*
 !.env.example
+deploy/docker/.env.maps
 
 # Local config overrides (keep examples tracked)
 config/application.properties
@@ -56,6 +57,7 @@ config/emission-factors.properties
 logs/
 
 # Local map data / services (large, local-only)
+data/maps/
 maps/
 photon_data/
 *.osm.pbf
