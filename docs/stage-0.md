@@ -1,6 +1,6 @@
 # Stage 0 — Mapas locales para ZON
 
-**Estado: en curso.** Photon y OSRM respondieron con datos reales desde la carpeta portable de prueba en Windows x64. El ZIP de mapas pesa **310,6 MiB**. Quedan por revisar 66 localidades de GeoRef y repetir la prueba en una máquina limpia sin conexión.
+**Estado: en curso.** Photon y OSRM respondieron con datos reales desde la carpeta portable de prueba en Windows x64. El ZIP de mapas pesa **310,6 MiB**. Ya se revisaron los 66 casos de GeoRef. Queda validar los alias candidatos, decidir el respaldo y repetir la prueba en una máquina limpia sin conexión.
 
 ## Decisiones
 
@@ -44,5 +44,6 @@ Los dos modos comparten los adaptadores y los contratos HTTP. El gestor de proce
 
 ## Pendientes para cerrar el Stage 0
 
-- [ ] Revisar los 66 casos de GeoRef. Distinguir alias, localidades compuestas, resultados ambiguos y faltantes. Documentar la resolución de cada caso y repetir la comparación de las 515 localidades. Para faltantes confirmados, evaluar un catálogo local de respaldo cuya integración quedaría para el Stage 3.
+- [x] Revisar los 66 casos y repetir las 515 consultas contra el índice actual. Se conservaron las 449 coincidencias y se documentaron 9 alias candidatos y 57 propuestas de respaldo. [Revisión por localidad](stage-0-localidades.md)
+- [ ] Validar los alias candidatos y acordar el catálogo de respaldo para los casos sin coincidencia verificada. Tras integrarlos en el Stage 3, volver a probar la resolución de las 515 localidades.
 - [ ] Probar ambos servicios en una PC o VM limpia con Windows x64, con la red desactivada, sin Java ni Docker instalados y con una cuenta sin permisos de administrador. Usar el Java incluido y registrar el resultado.
