@@ -174,11 +174,11 @@ CalculationConfig    # immutable config
 
 ## Tasks
 
-- T1 — S1,S2 — bootstrap artifacts: `.gitignore`, config examples, README/docs skeleton — inline — commit: pending
-- T2 — S4,S5,S6,S9 — immutable config model, `.properties` loader, factor loader/provider — inline — commit: pending
-- T3 — S7,S8,S9,S11 — domain model, statuses/error codes, normalization and row validation — inline — commit: pending
-- T4 — S6,S8,S9,S10,S11 — Haversine, consumption, emission calculators and summary aggregation — inline — commit: pending
-- T5 — S4,S9,S11 — geocoder/distance/report ports, candidate selection, bounded cache policy — inline — commit: pending
+- T1 — S1,S2 — bootstrap artifacts: `.gitignore`, config examples, README/docs skeleton — inline — RED: baseline skeleton test green before artifacts — GREEN: `mvn test` after artifacts — commit: `ae3812c`
+- T2 — S4,S5,S6,S9 — immutable config model, `.properties` loader, factor loader/provider — inline — RED: missing config/emission classes in `PropertiesConfigLoaderTest` and `PropertiesEmissionFactorProviderTest` — GREEN: 9 new tests — commit: `ce12208`
+- T3 — S7,S8,S9,S11 — domain model, statuses/error codes, normalization and row validation — inline — RED: missing normalization/ingest classes in `RowNormalizationTest` — GREEN: 9 new tests — commit: `bf64bc8`
+- T4 — S6,S8,S9,S10,S11 — Haversine, consumption, emission calculators and summary aggregation — inline — RED: missing distance/emission/summary types in `CalculationServicesTest` and `BatchSummaryTest` — GREEN: 10 new tests including four hand-calculated cases — commit: `6e18692`
+- T5 — S4,S9,S11 — geocoder/distance ports, candidate selection, bounded cache policy, row processing — inline — RED: missing ports/processor in `GeoPortsTest` and `RowProcessingTest` — GREEN: 17 new tests — commit: `b9d4b84`
 
 ## Log
 
@@ -192,4 +192,10 @@ bueno ahi corregí la version de java asi que podemos arrancar
 Branch `main` was clean; `pom.xml`, package placeholders, `Main`/`MainTest`, `.gitignore`, `.editorconfig`, `.gitattributes` and minimal config examples already exist. Stage 0 is not started but Stage 1 is independent. Verified `java -version` = OpenJDK 21.0.2 and Maven uses it. RDD is on by default; each work-unit commit gets `gentle-ai review assess` against the previous reviewed boundary. Route: inline (no writer trigger, no parallel independent units). Delivery strategy: work-unit commits on this branch; no push or PR without explicit authorization, so the chain-strategy choice is deferred to PR time. The on-disk plan contains mojibake (`CÃ³rdoba`, `â€“`); quoted strings above are literal, new artifacts use correct accents.
 
 ### L4 (2026-11-23) — progress
-Pending: T1 through T5, each with observed RED then GREEN evidence and commit identity.
+T1 through T5 implemented with observed RED then GREEN evidence. Work-unit commits: `ae3812c`, `ce12208`, `bf64bc8`, `6e18692`, `b9d4b84`. Each commit was assessed with `gentle-ai review assess --cwd . --agent opencode --base-ref ca91b08 --committed-only --json`; result: `risk=medium`, `review_due=false`, `review_due_reason=under_budget`. No native review was started because RDD did not mark any slice due.
+
+### L5 (2026-11-23) — verification
+`mvn test` green after each task. Final checks: `mvn verify` green, `java -jar target/zon-calculadora-0.1.0-SNAPSHOT.jar` prints `ZON Calculadora`, `git diff --check` clean. Core imports are only `java.*` and `ar.zon.calculadora.core.*`; `.properties` parsing and coordinate mapping live in `infra`. Engram mirror is pending because the memory store rejected the current project/session; the local document is authoritative.
+
+### L6 (2026-11-23) — closure
+Stage 1 complete within the authorized scope. Risk: none (new internal code only; no existing public CLI/config contract broken, no data migration, no concurrency or delivery change). Push, PR and merge remain user decisions.

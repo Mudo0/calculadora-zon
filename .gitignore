@@ -59,6 +59,8 @@ logs/
 # Local map data / services (large, local-only)
 data/maps/
 maps/
+!src/main/java/ar/zon/calculadora/infra/maps/
+!src/main/java/ar/zon/calculadora/infra/maps/**
 photon_data/
 *.osm.pbf
 *.osrm
