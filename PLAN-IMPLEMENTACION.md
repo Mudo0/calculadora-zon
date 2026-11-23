@@ -28,7 +28,7 @@ It is **not** the LLD or ADR. The work is split in **stages**; each stage leaves
 | Airplane | Out of Increment 1. |
 | Electric vehicles | **Out of Increment 1.** An `electrico`-like value is treated as unknown transport. Model stays extensible. |
 | Emission factors | **No official source yet.** Placeholder test values, clearly marked as not real; the report flags their use (see 8.2). |
-| Origin data | Neighborhood / locality / city level. No exact home addresses, no personal data. Processing is local anyway. |
+| Origin data | Locality across Córdoba province, with optional neighborhoods in selected urban areas. No exact home addresses, no personal data. See the [regional coverage rules](docs/deployment.md#cobertura-regional-de-photon). |
 | Volume | Variable: ~20 up to ~50,000 rows. Streaming is mandatory; no full-file load in memory. 500k is **not** a target. |
 | Performance | Target p95 ~1 s per row without cache; caches make repeated origins nearly free. |
 | Output files | Must open in any spreadsheet app. XLSX is the recommended output (no locale issues); CSV defaults are tuned for es-AR (see 8.1). |
@@ -791,17 +791,25 @@ Entregable esperado:
 
 ### Stage 0 - Deployment baseline + map services contracts
 
-Goal: define and validate deployment on **our own server, supporting Windows and Ubuntu**. Photon/OSRM must be reachable through the same HTTP contracts. Docker is optional; native/compiled OSRM is a valid alternative behind the same adapter.
+**First delivery target:** a self-contained Windows x64 bundle for the entire
+province of Córdoba. Validate the native local services first and use Annex B for
+the required packaging work in Stage 5. Keep external services on a future
+server as a supported deployment option behind the same HTTP contracts. See
+[the Stage 0 deployment record](docs/deployment.md) for the validated setup
+and outstanding checks.
+
+Goal: validate the native map services for the first Windows x64 delivery.
+Local and future server deployments use the same Photon and OSRM HTTP contracts.
 
 Scope:
-1. Choose initial target environment: our own server, Windows and/or Ubuntu, OS/arch, Java 21 availability, Docker availability, disk/RAM/network policy. Record in `docs/deployment.md`.
+1. Record the Windows x64 test environment, bundled Java 21 runtime, disk, RAM and network requirements in `docs/deployment.md`.
 2. Validate map services using selected path: Annex C (Docker Compose, optional) or Annex A (native processes). Both must satisfy the same HTTP contracts used by adapters (`PhotonGeocoder`, `OsrmRouteCalculator`).
 3. **OSRM runtime spike (recommended):** run the same small benchmark against Docker OSRM and native/compiled OSRM where feasible (same data, same requests, same machine class). Measure p95 latency, startup, RAM, ops complexity, Windows/Ubuntu friction. Record in `docs/osrm-runtime-benchmark.md`. This compares infra runtimes only; no core changes.
 4. Save one sample Photon response and one OSRM response under `src/test/resources/fixtures/` (used later to write adapter tests).
-5. If optional offline bundle (Annex B) is in scope, do target-OS offline go/no-go from A.6 check 4 and record it. If not selected, record "bundle not selected" explicitly.
+5. Run the target-OS offline go/no-go from A.6 check 4 for the first delivery and record the result.
 6. Record environment, RAM, disk, setup time, per-request latency, and image/binary versions in docs.
 
-Done when: selected server deployment path passes smoke checks on target OS(es), fixture responses are saved, OSRM runtime comparison is recorded (or explicitly deferred with reason), and deployment/bundle decisions are recorded.
+Done when: both local services pass smoke checks on the target Windows environment and the offline check, fixture responses are saved, the OSRM runtime comparison is recorded (or explicitly deferred with reason), and deployment decisions are documented.
 
 ### Stage 1 - Project skeleton + pure core
 
