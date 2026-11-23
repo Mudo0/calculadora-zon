@@ -58,6 +58,7 @@ factors.file=./config/emission-factors.properties
 ```
 - `distance.mode` is the **only** mode switch. For development without map services use `geocoder.mode=COORDINATES` (or `FILE`) with `distance.mode=HAVERSINE`.
 ```
+Added PR-review acceptance criterion: both destination coordinates must be finite before their ranges are checked; `NaN` and infinities are invalid configuration.
 
 ### S6 - Factors (verbatim from 8.2)
 ```
@@ -76,6 +77,7 @@ Key pattern: `factor.<transport>.<fuel>.<attribute>` in lower case.
 - If **any** row used a factor whose `source` starts with `PLACEHOLDER`, the console summary and the JSON summary show a warning `USING_PLACEHOLDER_FACTORS`, so a report can never be mistaken for real figures.
 - Missing factor => row error `FACTOR_NOT_FOUND`, never a silent zero.
 ```
+Added PR-review acceptance criterion: absent or empty required attributes are not `0.0`; `vehicle_km` requires `fuel_unit`, `consumption_per_100km` and `kgco2e_per_fuel_unit`; `passenger_km` requires `kgco2e_per_passenger_km`; every supplied numeric attribute must be finite and non-negative before the factor is built.
 
 ### S7 - Transport and fuel normalization (verbatim from 9.2 and 9.3)
 ```
@@ -174,8 +176,8 @@ CalculationConfig    # immutable config
 
 ## Tasks
 
-- T1 — S1,S2 — bootstrap artifacts: `.gitignore`, config examples, README/docs skeleton — inline — RED: baseline skeleton test green before artifacts — GREEN: `mvn test` after artifacts — commit: `ae3812c`
-- T2 — S4,S5,S6,S9 — immutable config model, `.properties` loader, factor loader/provider — inline — RED: missing config/emission classes in `PropertiesConfigLoaderTest` and `PropertiesEmissionFactorProviderTest` — GREEN: 9 new tests — commit: `ce12208`
+- T1 — S1,S2 — bootstrap artifacts: `.gitignore`, config examples, README/docs skeleton — inline — RED: baseline skeleton test green before artifacts — GREEN: `mvn test` after artifacts — commit: `ae3812c` — P3 fixed: original PRD restored at its root path and linked from `docs/README.md`; final commit recorded in L9
+- T2 — S4,S5,S6,S9 — immutable config model, `.properties` loader, factor loader/provider — inline — RED: missing config/emission classes in `PropertiesConfigLoaderTest` and `PropertiesEmissionFactorProviderTest` — GREEN: 9 new tests — commit: `ce12208` — P1/P2 fixed: four new RED tests, GREEN after validation changes — commit: `6003715`
 - T3 — S7,S8,S9,S11 — domain model, statuses/error codes, normalization and row validation — inline — RED: missing normalization/ingest classes in `RowNormalizationTest` — GREEN: 9 new tests — commit: `bf64bc8`
 - T4 — S6,S8,S9,S10,S11 — Haversine, consumption, emission calculators and summary aggregation — inline — RED: missing distance/emission/summary types in `CalculationServicesTest` and `BatchSummaryTest` — GREEN: 10 new tests including four hand-calculated cases — commit: `6e18692`
 - T5 — S4,S9,S11 — geocoder/distance ports, candidate selection, bounded cache policy, row processing — inline — RED: missing ports/processor in `GeoPortsTest` and `RowProcessingTest` — GREEN: 17 new tests — commit: `b9d4b84`
@@ -199,3 +201,17 @@ T1 through T5 implemented with observed RED then GREEN evidence. Work-unit commi
 
 ### L6 (2026-11-23) — closure
 Stage 1 complete within the authorized scope. Risk: none (new internal code only; no existing public CLI/config contract broken, no data migration, no concurrency or delivery change). Push, PR and merge remain user decisions.
+
+### L7 (2026-11-23) — PR review corrections (verbatim)
+P1: Los factores incompletos producen ceros
+El lector convierte cualquier atributo numérico ausente o vacío en 0.0. Si se omite kgco2e_per_fuel_unit en un factor vehicle_km, la fila puede quedar como OK con cero emisiones. Validá los campos requeridos según la base del factor y rechazá valores negativos o no finitos antes de construirlo.
+P2: La validación acepta coordenadas NaN
+El lector acepta NaN como número y Math.abs(NaN) > 90 devuelve falso. Por ejemplo, destination.lat=NaN con una longitud válida pasa el control y puede producir una distancia inválida. Comprobá que ambas coordenadas sean finitas antes de validar sus rangos.
+P2: La eliminación del PRD deja referencias sin destino
+El PR elimina el PRD original, pero el plan todavía lo cita por nombre y conserva referencias a sus requisitos. Este resumen registra los cambios del Incremento 1 y no contiene el documento base. Conservá el PRD o indicá su nueva ubicación y actualizá las referencias.
+
+### L8 (2026-11-23) — correction plan
+Reopen T1 and T2. T2 covers P1 (basis-specific required factor attributes and finite non-negative numbers) and P2/NaN (finite destination coordinates before range checks). T1 covers P3 (restore the original PRD and keep `docs/prd-delta.md` as the delta only). All code corrections follow RED → GREEN.
+
+### L9 (2026-11-23) — correction evidence
+RED: 4 new tests failed (`rejectsVehicleFactorWithoutRequiredEmissionAttribute`, `rejectsPassengerFactorWithoutRequiredAttribute`, `rejectsNegativeAndNonFiniteNumbers`, `rejectsNonFiniteDestinationCoordinates`). GREEN: all 48 tests pass after `6003715`. P3 verified structurally: the PRD is no longer deleted in the diff against `origin/main`, `PLAN-IMPLEMENTACION.md` still resolves its original filename, and `docs/README.md` links it explicitly.
