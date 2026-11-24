@@ -728,8 +728,12 @@ Each stage lists its scope, how to try it, and when it is done. Every stage ends
 
 Use this checklist to track progress. Mark a stage done only when its "Done when" criteria and required checks pass.
 
+#### Luego de completar el stage marcarlo como listo
+
+Cuando un stage cumpla sus criterios "Done when" y pase las verificaciones requeridas, cambiar su casilla de `- [ ]` a `- [x]` y agregar la evidencia de cierre: fecha, commits o PR y comandos ejecutados. No marcar como listo un stage con checks pendientes o fallidos; registrar el bloqueo en la PR y dejar la casilla sin marcar.
+
 - [ ] **Stage 0 - Deployment baseline + map services contracts** (`stage-0-deploy-baseline`) - independent; can run in parallel with Stage 1.
-- [ ] **Stage 1 - Project skeleton + pure core** (`stage-1-project-core`) - independent; can run in parallel with Stage 0.
+- [x] **Stage 1 - Project skeleton + pure core** (`stage-1-project-core`) - independent; can run in parallel with Stage 0. **Listo** (2026-11-23): PR #1, commits `ae3812c` a `5846695`, 48 tests en verde, `mvn verify` verde, smoke del JAR correcto; correcciones de revisión incluidas.
 - [ ] **Stage 2 - End-to-end CSV flow, offline** (`stage-2-csv-offline`) - depends on Stage 1.
 - [ ] **Stage 3 - Real maps: Photon + OSRM adapters** (`stage-3-real-maps`) - depends on Stages 0 and 2; can run in parallel with Stage 4 once dependencies are done.
 - [ ] **Stage 4 - XLSX support and CSV/XLSX parity** (`stage-4-xlsx-parity`) - depends on Stage 2; can run in parallel with Stage 3 once Stage 2 is done.
