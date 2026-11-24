@@ -1,10 +1,14 @@
 # ZON development guidelines
 
-## Implementation plan
+## Project context and skills
 
-- Always read the root `PLAN-IMPLEMENTACION.md` before starting any task in
-  this repository. Use it to identify the relevant stage, package boundaries,
-  conventions, and acceptance checks for the requested work.
+Before starting any task, read:
+
+- `PLAN-IMPLEMENTACION.md` at the repository root.
+- `.agents/skills/git-workflow/SKILL.md` before creating branches, opening Pull Requests, or filing issues.
+- `.github/PULL_REQUEST_TEMPLATE.md` whenever preparing a Pull Request.
+
+If additional project skills exist under `.agents/skills/`, check their `SKILL.md` when their scope matches the task.
 
 ## Language
 
@@ -40,3 +44,32 @@
   and `chore` for routine maintenance.
 - Add a body in Spanish when the reason for the change needs context.
 - Example: `fix: redondea los totales de impuestos`.
+
+## Boundaries
+
+- Do not modify secrets, credentials, `.env` files, or existing database
+  migrations without explicit confirmation.
+- Avoid editing shared configuration or files owned by other team members
+  unless the task explicitly requires it.
+- Do not run destructive git commands (`reset --hard`, `checkout --`,
+  `clean -fd`) or push changes without explicit user instruction.
+
+## Dependencies and tooling
+
+- Do not add new external dependencies or change build/dependency versions
+  without explicit approval.
+- Prefer existing project utilities and approved local/open-source tooling
+  over introducing new external services.
+
+## Ambiguity and blockers
+
+- When requirements or package boundaries are ambiguous, ask a concise
+  clarifying question or state explicit assumptions before editing code.
+- If a build, test, or lint command fails due to an environment issue, report
+  the exact error instead of masking or skipping the check.
+
+## Final response
+
+- Respond in Spanish, concisely and directly.
+- Include the commands run, their outcomes, any skipped checks, modified
+  files, and open assumptions or risks.
