@@ -35,9 +35,9 @@ S9 - Output contract: the fixed 30-column report from section 12.1 stays unchang
 ## Tasks
 
 - T1 — S3,S5,S6,S7 — pinned JSON dependency, shared HTTP client with timeout/retry and consecutive-failure guard, core fatal service exception — inline — RED: compile failure for missing HTTP client and exception — commit: c91f6a0 — GREEN: `mvn -o test` exit 0 — review: granted, approved, acknowledged (lineage review-0f18a4f2645403b7)
-- T2 — S1,S3,S6 — `PhotonGeocoder` with query, bias, bbox, `[lon,lat]` mapping, deterministic candidates and label/count — inline — RED: missing adapter class — commit: pending — GREEN: `mvn -o test` exit 0
-- T3 — S1,S3,S6 — `OsrmRouteCalculator` with route URL, meters-to-km, `code != Ok` handling — inline — RED: missing adapter class — commit: pending — GREEN: `mvn -o test` exit 0
-- T4 — S1,S5 — startup health-check and CLI wiring: PHOTON/ROUTE/BOTH, caches, fatal mapping, fallback reason — inline — RED: Stage 2 guards reject ROUTE/PHOTON — commit: pending
+- T2 — S1,S3,S6 — `PhotonGeocoder` with query, bias, bbox, `[lon,lat]` mapping, deterministic candidates and label/count — inline — RED: missing adapter class — commit: d1a3eb4 — GREEN: `mvn -o test` exit 0 — review: under_budget
+- T3 — S1,S3,S6 — `OsrmRouteCalculator` with route URL, meters-to-km, `code != Ok` handling — inline — RED: missing adapter class — commit: 3ec062d — GREEN: `mvn -o test` exit 0 — review: under_budget
+- T4 — S1,S5 — startup health-check and CLI wiring: PHOTON/ROUTE/BOTH, caches, fatal mapping, fallback reason — inline — RED: Stage 2 guards reject ROUTE/PHOTON — commit: pending — GREEN: `mvn -o test` exit 0, 95 tests
 - T5 — S1,S2,S3 — optional tagged smoke test and documentation of the pending real-service check — inline — RED: no tagged test exists — commit: pending
 - T6 — S1,S2 — full `mvn verify`, jar smoke with fixtures/local stub, and stage closure with honest pending state — inline — verification-only — commit: pending
 
@@ -52,3 +52,5 @@ L3 (2026-11-24): T1 revisado y aprobado con consentimiento explícito del usuari
 L4 (2026-11-24): T2 en verde. RED observado como error de compilación por la clase PhotonGeocoder ausente; GREEN con la fixture photon-alta-gracia.json servida por un HttpServer local. Se verificaron mapeo [lon,lat], consulta con q/limit/lat/lon/bbox codificados, selección determinista independiente del orden y respuesta sin features.
 
 L5 (2026-11-24): T3 en verde. RED observado como error de compilación por la clase OsrmRouteCalculator ausente; GREEN con la fixture osrm-cordoba-villa-carlos-paz.json servida por un HttpServer local. Se verificaron 36370.9 m -> 36.3709 km, URL `driving` con longitud primero y `overview=false`, y respuestas `code != Ok` o sin distancia como ruta inexistente. La primera ejecución falló solo por el decimal final de la coordenada formateada con `%.6f`; se ajustó la expectativa del test.
+
+L6 (2026-11-24): T4 en verde. RED: los guardias de Stage 2 rechazaban `distance.mode=ROUTE` y `geocoder.mode=PHOTON`, y el `Router` era vacío. GREEN: `Stage3CliTest` con servidor local sirve ambas fixtures y verifica flujo PHOTON+ROUTE (salida 0, `36,3709`, `origen_label=Alta Gracia`, sin fallback), apertura de disyuntor con salida 2 y `SERVICE_UNAVAILABLE` sin escribir informe, y health-check fallido en arranque con salida 2. Se conservó el constructor de 7 argumentos de `RowResult` (S7), el contrato de 30 columnas y los códigos de salida (S4). `mvn -o test`: 95 tests, 0 fallos. Suite completa en verde tras los cambios de `RowResult`/`RowProcessor`/`CalculateSurveyBatchUseCase`.
