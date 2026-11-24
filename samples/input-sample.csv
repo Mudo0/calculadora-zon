@@ -1,0 +1,16 @@
+personas;origen;transporte;combustible;destino;evento
+2;-31.41,-64.19;auto;nafta;;Evento X
+1;-31.42,-64.20;auto;;;Evento X
+3;-31.43,-64.21;auto;gnc;;Evento X
+1;-31.44,-64.22;moto;nafta;;Evento X
+4;-31.45,-64.23;colectivo;gasoil;;Evento X
+1;-31.46,-64.24;bici;;;Evento X
+1;-31.47,-64.25;pie;;;Evento X
+0;-31.48,-64.26;auto;nafta;;Evento X
+6;-31.49,-64.27;auto;nafta;;Evento X
+;-31.50,-64.28;auto;nafta;;Evento X
+1;-31.51,-64.29;electrico;nafta;;Evento X
+1;-31.52,-64.30;auto;electrico;;Evento X
+1;Desconocido;auto;nafta;;Evento X
+2;-31.53,-64.31;auto;nafta;-31.60,-64.40;Evento X
+1;=CMD('calc');auto;nafta;;Evento X
