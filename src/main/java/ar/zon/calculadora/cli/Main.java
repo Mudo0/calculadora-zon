@@ -79,6 +79,7 @@ public final class Main {
                 System.out.println(VERSION);
                 return 0;
             }
+            validateDistinctPaths(parsed);
             if (parsed.logLevel() != null && !LOG_LEVELS.contains(parsed.logLevel().toUpperCase(Locale.ROOT))) {
                 throw new BatchException(ErrorCode.INVALID_CONFIG, "log-level no válido: " + parsed.logLevel());
             }
@@ -205,6 +206,22 @@ public final class Main {
             default -> throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE,
                     "Stage 2 no incluye el geocoder " + config.geocoder().mode());
         };
+    }
+
+    private static void validateDistinctPaths(Arguments args) throws BatchException {
+        if (args.summary() == null) {
+            return;
+        }
+        Path summary = absolute(args.summary());
+        if (summary.equals(absolute(args.input())) || summary.equals(absolute(args.output()))
+                || summary.equals(absolute(args.config()))) {
+            throw new BatchException(ErrorCode.INVALID_CONFIG,
+                    "--summary no puede apuntar a la entrada, la salida ni la configuración");
+        }
+    }
+
+    private static Path absolute(Path path) {
+        return path.toAbsolutePath().normalize();
     }
 
     private static void writeSummary(Path path, BatchOutcome outcome) throws BatchException {

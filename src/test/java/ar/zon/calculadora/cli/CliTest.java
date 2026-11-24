@@ -75,6 +75,39 @@ class CliTest {
     }
 
     @Test
+    void refusesSummaryThatOverwritesInputAndKeepsItIntact() throws Exception {
+        Path input = input("""
+                personas;origen;transporte;combustible
+                2;-31.4,-64.2;auto;nafta
+                """);
+        String original = Files.readString(input);
+        Path output = directory.resolve("input-collision.csv");
+
+        Captured result = run("--input", input.toString(), "--output", output.toString(),
+                "--config", config(true).toString(), "--summary", input.toString());
+
+        assertThat(result.code()).isEqualTo(2);
+        assertThat(Files.readString(input)).isEqualTo(original);
+        assertThat(Files.exists(output)).isFalse();
+    }
+
+    @Test
+    void refusesSummaryThatOverwritesOutputEvenWithForce() throws Exception {
+        Path input = input("""
+                personas;origen;transporte;combustible
+                2;-31.4,-64.2;auto;nafta
+                """);
+        Path output = directory.resolve("output-collision.csv");
+        Files.writeString(output, "original report");
+
+        Captured result = run("--input", input.toString(), "--output", output.toString(),
+                "--config", config(true).toString(), "--summary", output.toString(), "--force");
+
+        assertThat(result.code()).isEqualTo(2);
+        assertThat(Files.readString(output)).isEqualTo("original report");
+    }
+
+    @Test
     void printsHelpVersionAndUsageWithoutArguments() {
         assertThat(run("--help").out()).contains("Uso:");
         assertThat(run("--version").out()).contains(Main.VERSION);
