@@ -34,8 +34,8 @@ S9 - Output contract: the fixed 30-column report from section 12.1 stays unchang
 
 ## Tasks
 
-- T1 — S3,S5,S6,S7 — pinned JSON dependency, shared HTTP client with timeout/retry and consecutive-failure guard, core fatal service exception — inline — RED: compile failure for missing HTTP client and exception — commit: pending
-- T2 — S1,S3,S6 — `PhotonGeocoder` with query, bias, bbox, `[lon,lat]` mapping, deterministic candidates and label/count — inline — RED: missing adapter class — commit: pending
+- T1 — S3,S5,S6,S7 — pinned JSON dependency, shared HTTP client with timeout/retry and consecutive-failure guard, core fatal service exception — inline — RED: compile failure for missing HTTP client and exception — commit: c91f6a0 — GREEN: `mvn -o test` exit 0 — review: granted, approved, acknowledged (lineage review-0f18a4f2645403b7)
+- T2 — S1,S3,S6 — `PhotonGeocoder` with query, bias, bbox, `[lon,lat]` mapping, deterministic candidates and label/count — inline — RED: missing adapter class — commit: pending — GREEN: `mvn -o test` exit 0
 - T3 — S1,S3,S6 — `OsrmRouteCalculator` with route URL, meters-to-km, `code != Ok` handling — inline — RED: missing adapter class — commit: pending
 - T4 — S1,S5 — startup health-check and CLI wiring: PHOTON/ROUTE/BOTH, caches, fatal mapping, fallback reason — inline — RED: Stage 2 guards reject ROUTE/PHOTON — commit: pending
 - T5 — S1,S2,S3 — optional tagged smoke test and documentation of the pending real-service check — inline — RED: no tagged test exists — commit: pending
@@ -46,3 +46,7 @@ S9 - Output contract: the fixed 30-column report from section 12.1 stays unchang
 L1 (2026-11-24): y podemos construir el stage 3 y luego dejar como pendiente eso que falta? probablemente se le haya olvidado subir a mi compañero
 
 L2 (2026-11-24): El usuario confirmó la construcción del Stage 3 con el smoke de servicios reales pendiente. Previamente decidió dejar para después la integración de alias/respaldos de GeoRef. Route: inline, TDD RED -> GREEN, work-unit commits on stage-3-real-maps. RDD está activo por defecto; la dependencia JSON nueva se escala como ítem de riesgo 5. Jackson 2.21.5, jackson-core 2.21.5 y jackson-annotations 2.21 están en el repositorio Maven local.
+
+L3 (2026-11-24): T1 revisado y aprobado con consentimiento explícito del usuario; recibo quemado en la lineage review-0f18a4f2645403b7. Los hallazgos quedaron como advisories no bloqueantes: MAPPER.readTree tras recordSuccess en HttpJsonClient, 4xx sin reintento ni guardia, beste faltante en el constructor, y avisos de CVE sobre jackson-databind 2.21.5 con versiones corregidas publicadas. Native review declaró esos hallazgos informational y no ofreció corrección, así que no reabren la revisión de T1; se registran para trabajo posterior.
+
+L4 (2026-11-24): T2 en verde. RED observado como error de compilación por la clase PhotonGeocoder ausente; GREEN con la fixture photon-alta-gracia.json servida por un HttpServer local. Se verificaron mapeo [lon,lat], consulta con q/limit/lat/lon/bbox codificados, selección determinista independiente del orden y respuesta sin features.
