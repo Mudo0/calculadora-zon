@@ -736,6 +736,8 @@ Use this checklist to track progress. Mark a stage done only when its "Done when
 - [ ] **Stage 5 - Optional offline bundle + bundled-services launcher** (`stage-5-offline-bundle`) - optional; depends on Stages 0, 3, 4; execute only if offline bundle packaging is selected.
 - [ ] **Stage 6 - Hardening, smoke tests, docs** (`stage-6-hardening-docs`) - depends on Stages 3, 4 and 5 only if bundle selected.
 
+**Stage 3 cannot be marked complete** until the pendientes in [docs/pendientes.md](docs/pendientes.md) are resolved: issues [#3](https://github.com/Mudo0/calculadora-zon/issues/3), [#4](https://github.com/Mudo0/calculadora-zon/issues/4), [#5](https://github.com/Mudo0/calculadora-zon/issues/5), [#6](https://github.com/Mudo0/calculadora-zon/issues/6) and [#7](https://github.com/Mudo0/calculadora-zon/issues/7). The real-services smoke (#3) is mandatory; fixture-based tests do not replace it.
+
 ### 16.2 Standard stage execution protocol (team prompt)
 
 Use this prompt/protocol when assigning any stage to a teammate. Replace placeholders before sending.
@@ -858,6 +860,8 @@ Scope:
 
 Try it: bring up map services with Annex C (`docker compose -f deploy/docker/docker-compose.maps.yml up -d`) or Annex A, then run with `geocoder.mode=PHOTON`, `distance.mode=ROUTE` on a few Córdoba localities.
 Done when: route km are plausible against a reference (±10% suggested), a stopped OSRM triggers fallback per row, a stopped service at startup gives exit 2, and the same run works against Dockerized endpoints configured through `photon.baseUrl`/`osrm.baseUrl`.
+
+Closure blocked: do not mark Stage 3 complete until issues #3-#7 in `docs/pendientes.md` are resolved. Issue #3 (real-services smoke) is a necessary condition: adapters were tested only against Stage 0 fixtures served by a local stub, because ports 2322/5000 are unavailable and `deploy/docker/` does not exist in this workspace. Issues #4-#7 are tracked follow-ups.
 
 ### Stage 4 - XLSX support and parity
 

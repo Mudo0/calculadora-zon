@@ -2,13 +2,15 @@
 
 Este archivo es el lugar único para consultar qué falta, por qué está pendiente y cómo cerrarlo. Se actualiza cuando un pendiente se resuelve o aparece uno nuevo; el detalle de decisiones por etapa sigue en cada documento de etapa.
 
-Fecha: 2026-11-24. Rama: `stage-3-real-maps` (6 commits; sin push, PR ni merge). Tests: `mvn -o verify` en verde con 97 pruebas unitarias y 1 de integración; el smoke con servicios reales está omitido.
+Fecha: 2026-11-24. Rama: `stage-3-real-maps`. Tests: `mvn -o verify` en verde con 97 pruebas unitarias y 1 de integración; el smoke con servicios reales está omitido.
+
+Issues de seguimiento: [P1 smoke real #3](https://github.com/Mudo0/calculadora-zon/issues/3), [P2 hardening HTTP #4](https://github.com/Mudo0/calculadora-zon/issues/4), [P2 CVE Jackson #5](https://github.com/Mudo0/calculadora-zon/issues/5), [P3 GeoRef #6](https://github.com/Mudo0/calculadora-zon/issues/6) y [P3 OSRM/Docker #7](https://github.com/Mudo0/calculadora-zon/issues/7). El plan no marca Stage 3 como completado hasta que estén resueltos.
 
 Orden de prioridad: primero lo que bloquea cerrar Stage 3 (P1), luego la deuda técnica conocida (P2) y finalmente lo diferido por decisión (P3).
 
 ---
 
-## P1 — Smoke con servicios reales (bloquea el cierre de Stage 3)
+## P1 — Smoke con servicios reales (bloquea el cierre de Stage 3) — [#3](https://github.com/Mudo0/calculadora-zon/issues/3)
 
 **Qué falta.** Ejecutar contra Photon y OSRM reales las comprobaciones que hoy solo se hicieron con fixtures servidas por un stub local:
 
@@ -35,7 +37,7 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 ---
 
-## P2 — Hardening del cliente HTTP (advisories de la revisión de T1)
+## P2 — Hardening del cliente HTTP (advisories de la revisión de T1) — [#4](https://github.com/Mudo0/calculadora-zon/issues/4)
 
 **Qué falta.** Cuatro hallazgos informativos que la revisión nativa de T1 registró como advisories y que no se corrigieron para no reabrir un recibo ya aprobado:
 
@@ -52,7 +54,7 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 ---
 
-## P2 — Verificar el aviso de CVE sobre `jackson-databind` 2.21.5
+## P2 — Verificar el aviso de CVE sobre `jackson-databind` 2.21.5 — [#5](https://github.com/Mudo0/calculadora-zon/issues/5)
 
 **Qué falta.** Comprobar si los CVE que mencionó un revisor con correcciones en `2.21.6` y `2.21.8` son reales y aplicables a este proyecto; solo entonces decidir si se sube la versión.
 
@@ -64,7 +66,7 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 ---
 
-## P3 — Integración de alias y respaldos GeoRef (diferida por el usuario)
+## P3 — Integración de alias y respaldos GeoRef (diferida por el usuario) — [#6](https://github.com/Mudo0/calculadora-zon/issues/6)
 
 **Qué falta.** Integrar los siete alias aceptados con su departamento y los 59 centroides de GeoRef como respaldo, y repetir las 515 consultas de localidades.
 
@@ -76,7 +78,7 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 ---
 
-## P3 — Comparación OSRM nativo contra Docker y chequeo en PC limpia
+## P3 — Comparación OSRM nativo contra Docker y chequeo en PC limpia — [#7](https://github.com/Mudo0/calculadora-zon/issues/7)
 
 **Qué falta.** Comparar OSRM nativo con el contenedor en un entorno de servidor candidato y repetir el smoke en una PC limpia.
 
@@ -94,10 +96,10 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 >
 > **Pendiente antes de cerrar el checklist de Stage 3:** el smoke contra servicios reales. En este workspace los puertos `2322`/`5000` no responden, falta el ZIP portable del Stage 0 y el compose del Anexo C no está materializado. Motivos, pasos y criterios de cierre en `docs/pendientes.md`.
 >
-> Seguimiento posterior: hardening del cliente HTTP, verificación del aviso de CVE sobre `jackson-databind` 2.21.5 e integración de alias y respaldos GeoRef.
+> Seguimiento posterior: [#3] smoke real, [#4] hardening del cliente HTTP, [#5] verificación del aviso de CVE sobre `jackson-databind` 2.21.5, [#6] integración de alias y respaldos GeoRef y [#7] comparación OSRM/Docker. Ninguno se cierra con este PR.
 
 ## Entrega y checklist
 
-No hay PR abierta ni push de la rama `stage-3-real-maps`; todos los commits están locales. Cuando el usuario lo autorice, publicar la rama y abrir la PR con los seis commits, pegando este inventario en la descripción, o crear un issue con la misma lista. El checkbox de Stage 3 en `PLAN-IMPLEMENTACION.md` se marca únicamente después del smoke P1; los pendientes P2 y P3 pueden quedar como seguimiento posterior sin bloquear la etapa.
+Los cinco pendientes tienen issue propio (#3 a #7) con el mismo contenido: qué falta, por qué y cómo cerrarlo. La rama `stage-3-real-maps` se publica y la PR enlaza esos issues como relacionados, sin cerrarlos. El checkbox de Stage 3 en `PLAN-IMPLEMENTACION.md` se marca únicamente cuando estén resueltos todos los pendientes; el smoke P1 es condición necesaria.
 
 [Índice de documentación](README.md) · [Stage 3](stage-3.md) · [Registro de tareas](../odd/tasks/stage-3-real-maps.md) · [Plan](../PLAN-IMPLEMENTACION.md)
