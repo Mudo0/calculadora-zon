@@ -8,3 +8,4 @@ Los documentos de despliegue y mapas (`deployment.md`, `maps-setup.md`, `docker-
 El [plan de implementación](../PLAN-IMPLEMENTACION.md) reúne las decisiones de arquitectura y los anexos de mapas, despliegue y distribución offline.
 
 - [Stage 0](stage-0.md) — decisiones, resultados, arquitectura y pendientes.
+- [Stage 1](stage-1.md) — núcleo de cálculo, arquitectura y pruebas.

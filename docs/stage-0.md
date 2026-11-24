@@ -1,6 +1,6 @@
 # Stage 0 — Mapas locales para ZON
 
-**Estado: en curso.** Photon y OSRM respondieron con datos reales desde la carpeta portable de prueba en Windows x64. El ZIP de mapas pesa **310,6 MiB**. Ya se revisaron los 66 casos de GeoRef. Queda validar los alias candidatos, decidir el respaldo y repetir la prueba en una máquina limpia sin conexión.
+**Estado: cerrado.** Photon y OSRM respondieron con datos reales desde la carpeta portable de prueba en Windows x64. El ZIP de mapas pesa **310,6 MiB** y el usuario confirmó la prueba offline. La revisión de GeoRef definió 7 alias y 59 respaldos para integrar en el Stage 3.
 
 ## Decisiones
 
@@ -42,8 +42,10 @@ El motor pedirá coordenadas a través de `Geocoder` y distancias por carretera 
 
 Los dos modos comparten los adaptadores y los contratos HTTP. El gestor de procesos y el empaquetado quedan fuera del motor de cálculo.
 
-## Pendientes para cerrar el Stage 0
+## Cierre del Stage 0
 
 - [x] Revisar los 66 casos y repetir las 515 consultas contra el índice actual. Se conservaron las 449 coincidencias y se documentaron 9 alias candidatos y 57 propuestas de respaldo. [Revisión por localidad](stage-0-localidades.md)
-- [ ] Validar los alias candidatos y acordar el catálogo de respaldo para los casos sin coincidencia verificada. Tras integrarlos en el Stage 3, volver a probar la resolución de las 515 localidades.
-- [ ] Probar ambos servicios en una PC o VM limpia con Windows x64, con la red desactivada, sin Java ni Docker instalados y con una cuenta sin permisos de administrador. Usar el Java incluido y registrar el resultado.
+- [x] Probar el paquete portable en Windows x64 con la red desactivada, sin Java ni Docker instalados y sin permisos de administrador, usando el Java incluido. Resultado satisfactorio confirmado por el usuario. Las salidas de esa ejecución no se adjuntaron al registro.
+- [x] Contrastar los alias con fuentes públicas y definir el respaldo. Se aceptaron 7 alias con departamento y se eligió GeoRef para los otros 59 IDs. [Decisión y fuentes](stage-0-localidades.md#decisión-para-la-integración)
+
+En el Stage 3 queda integrar estos datos y volver a probar la resolución de las 515 localidades. El ZIP de prueba editado antes de esta decisión contiene las propuestas iniciales.
