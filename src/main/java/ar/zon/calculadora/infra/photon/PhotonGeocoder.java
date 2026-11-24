@@ -3,13 +3,16 @@ package ar.zon.calculadora.infra.photon;
 import ar.zon.calculadora.core.distance.GeoPoint;
 import ar.zon.calculadora.core.geocode.GeoCandidate;
 import ar.zon.calculadora.core.geocode.Geocoder;
+import ar.zon.calculadora.core.model.TextNormalizer;
 import ar.zon.calculadora.infra.http.HttpJsonClient;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** Geocodificador Photon que convierte su GeoJSON en candidatos del dominio. */
 public final class PhotonGeocoder implements Geocoder {
@@ -53,11 +56,19 @@ public final class PhotonGeocoder implements Geocoder {
         }
         JsonNode features = json.path("features");
         List<GeoCandidate> candidates = new ArrayList<>();
-        for (int index = 0; index < features.size(); index++) {
-            GeoCandidate candidate = toCandidate(features.get(index), text, features.size() - index);
-            if (candidate != null) {
-                candidates.add(candidate);
+        Map<String, GeoPoint> pointsByLabel = new HashMap<>();
+        for (JsonNode feature : features) {
+            GeoCandidate candidate = toCandidate(feature, text, 1.0);
+            if (candidate == null) {
+                continue;
             }
+            // Photon no informa confianza: dos puntos con el mismo nombre son ambiguos.
+            GeoPoint previous = pointsByLabel.putIfAbsent(
+                    TextNormalizer.normalize(candidate.label()), candidate.point());
+            if (previous != null && !previous.equals(candidate.point())) {
+                return List.of();
+            }
+            candidates.add(candidate);
         }
         return List.copyOf(candidates);
     }

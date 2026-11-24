@@ -2,9 +2,9 @@
 
 Este archivo es el lugar único para consultar qué falta, por qué está pendiente y cómo cerrarlo. Se actualiza cuando un pendiente se resuelve o aparece uno nuevo; el detalle de decisiones por etapa sigue en cada documento de etapa.
 
-Fecha: 2026-11-24. Rama: `stage-3-real-maps`. Tests: `mvn -o verify` en verde con 97 pruebas unitarias y 1 de integración; el smoke con servicios reales está omitido.
+Fecha: 2026-11-24. Rama: `stage-3-real-maps`. Tests: `mvn -o verify` en verde con 100 pruebas unitarias y 1 de integración; el smoke con servicios reales está omitido.
 
-Issues de seguimiento: [P1 smoke real #3](https://github.com/Mudo0/calculadora-zon/issues/3), [P2 hardening HTTP #4](https://github.com/Mudo0/calculadora-zon/issues/4), [P2 CVE Jackson #5](https://github.com/Mudo0/calculadora-zon/issues/5), [P3 GeoRef #6](https://github.com/Mudo0/calculadora-zon/issues/6) y [P3 OSRM/Docker #7](https://github.com/Mudo0/calculadora-zon/issues/7). El plan no marca Stage 3 como completado hasta que estén resueltos.
+Issues de seguimiento: [P1 smoke real #3](https://github.com/Mudo0/calculadora-zon/issues/3), [P2 hardening HTTP #4](https://github.com/Mudo0/calculadora-zon/issues/4), [P2 CVE Jackson #5](https://github.com/Mudo0/calculadora-zon/issues/5), [P2 columna recta en BOTH #9](https://github.com/Mudo0/calculadora-zon/issues/9), [P3 GeoRef #6](https://github.com/Mudo0/calculadora-zon/issues/6) y [P3 OSRM/Docker #7](https://github.com/Mudo0/calculadora-zon/issues/7). El plan no marca Stage 3 como completado hasta que estén resueltos.
 
 Orden de prioridad: primero lo que bloquea cerrar Stage 3 (P1), luego la deuda técnica conocida (P2) y finalmente lo diferido por decisión (P3).
 
@@ -90,6 +90,18 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 ---
 
+## P2 - Verificación de `distance_straight_km` en modo `BOTH` - [#9](https://github.com/Mudo0/calculadora-zon/issues/9)
+
+**Qué falta.** Una prueba de salida CSV que verifique, con `distance.mode=BOTH`, que `distance_km` (vial, de OSRM) y `distance_straight_km` (recta, de Haversine) aparecen con valores distintos.
+
+**Por qué.** El revisor de la PR #8 señaló que BOTH entrega solo la distancia vial como `distance_km`, que es la correcta para emisiones, pero el plan también pide informar la recta en `distance_straight_km`. `CalculateSurveyBatchUseCase.java:163` ya escribe esa columna para toda fila con `trip`, también en BOTH, y `CsvReportWriter.java:30` la declara en el encabezado; no hay prueba que lo demuestre con dos valores diferentes. El usuario pidió dejar este punto para verlo con detenimiento.
+
+**Cómo hacerlo.** Escribir primero una prueba RED en `Stage3CliTest` con servidores stub que devuelvan distancias distintas, ejecutar la CLI con `distance.mode=BOTH` y afirmar sobre el CSV que ambas columnas difieren, que `distance_mode=BOTH` y que las emisiones usan la distancia vial. Si falla, corregir el flujo en `CalculateSurveyBatchUseCase`/`RowProcessor`; si pasa, quedaría como evidencia. Cerrar con `mvn -o verify` en verde.
+
+**Cierre.** Prueba CSV verde con ambas columnas y decisión documentada sobre si hacía falta cambiar producción.
+
+---
+
 ## Texto para la descripción del PR
 
 > Implementa Stage 3: adaptadores reales de Photon y OSRM cableados en la CLI, con cachés, reintentos, disyuntor y health-check. `mvn -o verify` en verde (97 pruebas unitarias, 2 omitidas, 1 de integración) y smoke del jar con fixtures servidas por un stub local.
@@ -100,6 +112,6 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 ## Entrega y checklist
 
-Los cinco pendientes tienen issue propio (#3 a #7) con el mismo contenido: qué falta, por qué y cómo cerrarlo. La rama `stage-3-real-maps` se publica y la PR enlaza esos issues como relacionados, sin cerrarlos. El checkbox de Stage 3 en `PLAN-IMPLEMENTACION.md` se marca únicamente cuando estén resueltos todos los pendientes; el smoke P1 es condición necesaria.
+Los seis pendientes tienen issue propio (#3 a #7 y #9) con el mismo contenido: qué falta, por qué y cómo cerrarlo. La rama `stage-3-real-maps` se publica y la PR enlaza esos issues como relacionados, sin cerrarlos. El checkbox de Stage 3 en `PLAN-IMPLEMENTACION.md` se marca únicamente cuando estén resueltos todos los pendientes; el smoke P1 es condición necesaria.
 
 [Índice de documentación](README.md) · [Stage 3](stage-3.md) · [Registro de tareas](../odd/tasks/stage-3-real-maps.md) · [Plan](../PLAN-IMPLEMENTACION.md)

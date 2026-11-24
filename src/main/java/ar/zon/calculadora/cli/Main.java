@@ -99,11 +99,12 @@ public final class Main {
             if (config.services().mode().equals("BUNDLED")) {
                 throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE, "Stage 2 no incluye servicios locales");
             }
-            ServiceFailureGuard guard = new ServiceFailureGuard(config.http().maxConsecutiveFailures());
             HttpJsonClient photonClient = new HttpJsonClient(config.http().photonBaseUrl(),
-                    config.http().timeoutMs(), config.http().retries(), guard);
+                    config.http().timeoutMs(), config.http().retries(),
+                    new ServiceFailureGuard(config.http().maxConsecutiveFailures()));
             HttpJsonClient osrmClient = new HttpJsonClient(config.http().osrmBaseUrl(),
-                    config.http().timeoutMs(), config.http().retries(), guard);
+                    config.http().timeoutMs(), config.http().retries(),
+                    new ServiceFailureGuard(config.http().maxConsecutiveFailures()));
             Geocoder geocoder = selectGeocoder(config, photonClient);
             Router router = selectRouter(config, osrmClient);
             checkServices(config, photonClient, osrmClient);

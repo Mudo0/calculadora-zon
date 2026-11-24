@@ -2,7 +2,7 @@ package ar.zon.calculadora.infra.http;
 
 import ar.zon.calculadora.core.errors.ServiceUnavailableException;
 
-/** Disyuntor simple: cuenta fallos de infraestructura consecutivos compartidos por los adaptadores. */
+/** Disyuntor simple: cuenta fallos consecutivos de un servicio. */
 public final class ServiceFailureGuard {
 
     private final int maxConsecutiveFailures;

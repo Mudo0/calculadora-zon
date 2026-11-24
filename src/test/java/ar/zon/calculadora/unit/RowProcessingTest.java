@@ -112,6 +112,21 @@ class RowProcessingTest {
     }
 
     @Test
+    void keepsRouterErrorAsFallbackReasonWhenFallbackIsEnabled() {
+        var geo = new FakeGeocoder();
+        geo.results.add(new GeoCandidate("Cordoba", new GeoPoint(-31.42, -64.18), 1.0, "photon"));
+        var router = new FakeRouter();
+        router.failure = new IllegalStateException("router down");
+
+        var result = processor("distance.fallback=HAVERSINE", geo, router, FACTORS)
+                .process(validRow(), DESTINATION)
+                .orElseThrow();
+
+        assertThat(result.status()).isEqualTo(RowStatus.OK_FALLBACK_HAVERSINE);
+        assertThat(result.fallbackReason()).isEqualTo("ROUTER_ERROR");
+    }
+
+    @Test
     void reportsRouteNotFoundWhenFallbackIsDisabled() {
         var geo = new FakeGeocoder();
         geo.results.add(new GeoCandidate("Cordoba", new GeoPoint(-31.42, -64.18), 1.0, "photon"));

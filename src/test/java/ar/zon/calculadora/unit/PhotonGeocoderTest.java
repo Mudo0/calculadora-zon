@@ -74,6 +74,22 @@ class PhotonGeocoderTest {
     }
 
     @Test
+    void ambiguousHomonymsAreNotSelectedRegardlessOfResponseOrder() throws IOException {
+        String first = feature("Alta Gracia", -64.4338563, -31.6578916);
+        String second = feature("Alta Gracia", -64.0, -31.5);
+
+        serve(collection(first, second));
+        List<GeoCandidate> natural = geocoder(null, null, null).geocode("Alta Gracia");
+        server.stop(0);
+
+        serve(collection(second, first));
+        List<GeoCandidate> reversed = geocoder(null, null, null).geocode("Alta Gracia");
+
+        assertThat(natural).isEmpty();
+        assertThat(reversed).isEmpty();
+    }
+
+    @Test
     void emptyFeaturesProduceNoCandidates() throws IOException {
         serve("{\"features\":[]}");
 
@@ -100,6 +116,15 @@ class PhotonGeocoderTest {
         try (var output = exchange.getResponseBody()) {
             output.write(bytes);
         }
+    }
+
+    private static String collection(String... features) {
+        return "{\"features\":[" + String.join(",", features) + "]}";
+    }
+
+    private static String feature(String name, double longitude, double latitude) {
+        return "{\"properties\":{\"name\":\"" + name + "\"},\"geometry\":{\"type\":\"Point\","
+                + "\"coordinates\":[" + longitude + "," + latitude + "]}}";
     }
 
     private static String fixture(String name) throws IOException {

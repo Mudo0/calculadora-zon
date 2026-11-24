@@ -11,7 +11,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-/** Cliente HTTP de solo lectura con timeout, reintentos acotados y guardia compartida de fallos. */
+/** Cliente HTTP de solo lectura con timeout, reintentos acotados y guardia de fallos del servicio. */
 public final class HttpJsonClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -28,7 +28,7 @@ public final class HttpJsonClient {
      * @param baseUrl URL base del servicio, sin la ruta del recurso
      * @param timeoutMs timeout por intento en milisegundos
      * @param retries reintentos además del primer intento
-     * @param guard guardia compartida de fallos consecutivos, o {@code null}
+     * @param guard guardia de fallos consecutivos del servicio, o {@code null}
      */
     public HttpJsonClient(String baseUrl, int timeoutMs, int retries, ServiceFailureGuard guard) {
         String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;

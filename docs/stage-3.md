@@ -44,7 +44,7 @@ Comprobaciones acordadas para el smoke: km de ruta plausibles contra la referenc
 
 ## Verificación y continuidad
 
-- [x] `mvn -o verify`: 97 pruebas unitarias, 0 fallos, 2 omitidas (smoke) y 1 de integración. `mvn -o test`: el smoke queda omitido por defecto.
+- [x] `mvn -o verify`: 100 pruebas unitarias, 0 fallos, 2 omitidas (smoke) y 1 de integración. `mvn -o test`: el smoke queda omitido por defecto.
 - [x] Las fixtures reales del Stage 0 ejercitan mapeo `[lon, lat]`, consulta con `q`/`limit`/`lat`/`lon`/`bbox`, 36370,9 m → 36,3709 km, selección determinista y respuestas sin ruta.
 - [ ] **[Pendiente]** Smoke con servicios reales: no se pudo ejecutar en este workspace. Los puertos 2322 y 5000 no responden y falta el ZIP portable `dist/zon-mapas-cordoba-stage0-windows-x64.zip`. Debe correrse en la PC con los servicios levantados.
 - [ ] **[Pendiente]** Integración posterior de los 7 alias y 59 respaldos GeoRef y la revisión de 515 localidades, diferida por decisión del usuario; sigue registrada en [stage-0-localidades.md](stage-0-localidades.md).

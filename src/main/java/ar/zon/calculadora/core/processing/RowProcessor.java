@@ -111,6 +111,7 @@ public final class RowProcessor {
         }
 
         Optional<ar.zon.calculadora.core.route.RouteResult> route;
+        String fallbackReason = ErrorCode.ROUTE_NOT_FOUND.name();
         try {
             route = router.route(origin, destination);
         } catch (ServiceUnavailableException e) {
@@ -120,13 +121,14 @@ public final class RowProcessor {
                 return new DistanceOutcome(null, ErrorCode.ROUTER_ERROR, ErrorCode.ROUTER_ERROR.name());
             }
             route = Optional.empty();
+            fallbackReason = ErrorCode.ROUTER_ERROR.name();
         }
         if (route.isPresent()) {
             return new DistanceOutcome(new DistanceResult(route.get().km(), false), null, "");
         }
         if (fallbackEnabled()) {
             return new DistanceOutcome(new DistanceResult(HaversineCalculator.distanceKm(origin, destination), true),
-                    null, ErrorCode.ROUTE_NOT_FOUND.name());
+                    null, fallbackReason);
         }
         return new DistanceOutcome(null, ErrorCode.ROUTE_NOT_FOUND, ErrorCode.ROUTE_NOT_FOUND.name());
     }

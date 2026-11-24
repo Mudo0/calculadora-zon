@@ -64,6 +64,22 @@ class Stage3CliTest {
     }
 
     @Test
+    void photonSuccessDoesNotResetOsrmFailureCounter() throws Exception {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api", exchange -> respond(exchange, 200, fixture("photon-alta-gracia.json")));
+        server.createContext("/route", exchange -> respond(exchange, 500, "down"));
+        server.start();
+        Path config = config(2, false);
+        Path output = directory.resolve("osrm-breaker.csv");
+
+        Captured result = run("--input", input(2).toString(), "--output", output.toString(),
+                "--config", config.toString(), "--force");
+
+        assertThat(result.code()).isEqualTo(2);
+        assertThat(result.err()).contains("SERVICE_UNAVAILABLE");
+    }
+
+    @Test
     void healthcheckFailsAtStartupWhenServiceIsDown() throws Exception {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> respond(exchange, 500, "down"));
@@ -90,11 +106,16 @@ class Stage3CliTest {
     }
 
     private Path input() throws IOException {
-        Path file = directory.resolve("input.csv");
-        Files.writeString(file, """
-                personas;origen;transporte;combustible
-                2;Alta Gracia;auto;nafta
-                """);
+        return input(1);
+    }
+
+    private Path input(int rows) throws IOException {
+        Path file = directory.resolve("input-" + rows + ".csv");
+        StringBuilder content = new StringBuilder("personas;origen;transporte;combustible\n");
+        for (int i = 0; i < rows; i++) {
+            content.append("2;Alta Gracia;auto;nafta\n");
+        }
+        Files.writeString(file, content.toString());
         return file;
     }
 
@@ -113,7 +134,9 @@ class Stage3CliTest {
                 "output.format=csv",
                 "geocoder.mode=PHOTON",
                 "geo.maxCandidates=5",
+                "geo.cache.enabled=false",
                 "distance.mode=ROUTE",
+                "route.cache.enabled=false",
                 "distance.fallback=HAVERSINE",
                 "distance.decimals=4",
                 "destination.lat=-31.4201",
