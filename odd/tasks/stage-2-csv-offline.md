@@ -39,8 +39,8 @@ S9 - Risk: adding `de.siegmar:fastcsv` to `pom.xml` is a new dependency (high-ri
 ## Tasks
 
 - T1 — S1,S6,S8,S9 — FastCSV dependency and `CsvRowReader` with dynamic header mapping, BOM, delimiter/charset detection, empty-row skipping — inline — RED: `CsvRowReaderTest` could not resolve the new reader class — GREEN: 5 new tests — commit: 7e4a439
-- T2 — S1,S5 — `CsvReportWriter` with 30 columns, es-AR defaults, BOM, injection guard, temp+rename, `--force` — inline — RED: `CsvReportWriterTest` could not resolve the new writer class — GREEN: 5 new tests — commit: pending
-- T3 — S1,S8 — `CoordinatesGeocoder`, `FileGeocoder`, test fakes and `CalculateSurveyBatchUseCase` with HAVERSINE — inline — pending
+- T2 — S1,S5 — `CsvReportWriter` with 30 columns, es-AR defaults, BOM, injection guard, temp+rename, `--force` — inline — RED: `CsvReportWriterTest` could not resolve the new writer class — GREEN: 5 new tests — commit: 008bc81
+- T3 — S1,S8 — `CoordinatesGeocoder`, `FileGeocoder`, test fakes and `CalculateSurveyBatchUseCase` with HAVERSINE — inline — RED: `GeocoderAdaptersTest` and `CalculateSurveyBatchUseCaseTest` could not resolve the new classes — GREEN: 6 new tests — commit: pending
 - T4 — S4,S7 — minimal CLI with all arguments, stderr progress, console summary and exit codes — inline — pending
 - T5 — S2,S7 — synthetic sample, offline end-to-end smoke, `mvn verify` and closure — inline — pending
 
@@ -56,4 +56,6 @@ L4 (2026-11-23): FastCSV 4.4.1 resolved from Maven Central and pinned in pom.xml
 
 L5 (2026-11-23): T1 was escalated as high-risk item 5 (new dependency) and the user granted native review. START created lineage `review-43aa386c83cf54b5`. Two subagent transport failures (`opencode_review_transport_relay_refused`) were resolved when the retry returned a complete reviewer result; its raw JSON was captured through the exact bound `review.capture-result` invocation. Native status reported `approved` with four non-blocking advisory findings (R3-1..R3-4), and the exact `review.acknowledge-approved` token was burned once (`gentle-ai.review-acknowledged/v1`, authority `burned`). Reviewed boundary for T2 is commit 7e4a439.
 
-L6 (2026-11-23): T2 RED observed as a compilation failure for the missing `CsvReportWriter`; two GREEN iterations fixed UTF-8 BOM decoding in the assertion and the directory-target error path. The writer emits the fixed 30-column header with CRLF, UTF-8 BOM, injection guard on text columns, temp-file rename, and OUTPUT_EXISTS/OUTPUT_WRITE_ERROR mapping. Full `mvn test` green (58 tests). Values are passed already formatted; number formatting belongs to the use case in T3.
+L6 (2026-11-23): T2 RED observed as a compilation failure for the missing `CsvReportWriter`; two GREEN iterations fixed UTF-8 BOM decoding in the assertion and the directory-target error path. The writer emits the fixed 30-column header with CRLF, UTF-8 BOM, injection guard on text columns, temp-file rename, and OUTPUT_EXISTS/OUTPUT_WRITE_ERROR mapping. Full `mvn test` green (58 tests). Values are passed already formatted; number formatting belongs to the use case in T3. Native assessment for commit 008bc81: `risk=medium`, `review_due=false`, `review_due_reason=under_budget`; reviewed boundary remains 7e4a439.
+
+L7 (2026-11-23): T3 RED observed as compilation failures for the missing geocoder adapters and use case. GREEN after implementing coordinates/file geocoders, reusable test fakes, destination resolution and row-to-report mapping that reuses `RowProcessor` and `SummaryAggregator`. One test correction made the fuel explicit so `fuel_inferred` is false. Full `mvn test` green (64 tests). HAVERSINE is handled inside `RowProcessor`; no router is called in that mode.
