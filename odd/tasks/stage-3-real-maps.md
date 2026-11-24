@@ -36,7 +36,7 @@ S9 - Output contract: the fixed 30-column report from section 12.1 stays unchang
 
 - T1 — S3,S5,S6,S7 — pinned JSON dependency, shared HTTP client with timeout/retry and consecutive-failure guard, core fatal service exception — inline — RED: compile failure for missing HTTP client and exception — commit: c91f6a0 — GREEN: `mvn -o test` exit 0 — review: granted, approved, acknowledged (lineage review-0f18a4f2645403b7)
 - T2 — S1,S3,S6 — `PhotonGeocoder` with query, bias, bbox, `[lon,lat]` mapping, deterministic candidates and label/count — inline — RED: missing adapter class — commit: pending — GREEN: `mvn -o test` exit 0
-- T3 — S1,S3,S6 — `OsrmRouteCalculator` with route URL, meters-to-km, `code != Ok` handling — inline — RED: missing adapter class — commit: pending
+- T3 — S1,S3,S6 — `OsrmRouteCalculator` with route URL, meters-to-km, `code != Ok` handling — inline — RED: missing adapter class — commit: pending — GREEN: `mvn -o test` exit 0
 - T4 — S1,S5 — startup health-check and CLI wiring: PHOTON/ROUTE/BOTH, caches, fatal mapping, fallback reason — inline — RED: Stage 2 guards reject ROUTE/PHOTON — commit: pending
 - T5 — S1,S2,S3 — optional tagged smoke test and documentation of the pending real-service check — inline — RED: no tagged test exists — commit: pending
 - T6 — S1,S2 — full `mvn verify`, jar smoke with fixtures/local stub, and stage closure with honest pending state — inline — verification-only — commit: pending
@@ -50,3 +50,5 @@ L2 (2026-11-24): El usuario confirmó la construcción del Stage 3 con el smoke 
 L3 (2026-11-24): T1 revisado y aprobado con consentimiento explícito del usuario; recibo quemado en la lineage review-0f18a4f2645403b7. Los hallazgos quedaron como advisories no bloqueantes: MAPPER.readTree tras recordSuccess en HttpJsonClient, 4xx sin reintento ni guardia, beste faltante en el constructor, y avisos de CVE sobre jackson-databind 2.21.5 con versiones corregidas publicadas. Native review declaró esos hallazgos informational y no ofreció corrección, así que no reabren la revisión de T1; se registran para trabajo posterior.
 
 L4 (2026-11-24): T2 en verde. RED observado como error de compilación por la clase PhotonGeocoder ausente; GREEN con la fixture photon-alta-gracia.json servida por un HttpServer local. Se verificaron mapeo [lon,lat], consulta con q/limit/lat/lon/bbox codificados, selección determinista independiente del orden y respuesta sin features.
+
+L5 (2026-11-24): T3 en verde. RED observado como error de compilación por la clase OsrmRouteCalculator ausente; GREEN con la fixture osrm-cordoba-villa-carlos-paz.json servida por un HttpServer local. Se verificaron 36370.9 m -> 36.3709 km, URL `driving` con longitud primero y `overview=false`, y respuestas `code != Ok` o sin distancia como ruta inexistente. La primera ejecución falló solo por el decimal final de la coordenada formateada con `%.6f`; se ajustó la expectativa del test.
