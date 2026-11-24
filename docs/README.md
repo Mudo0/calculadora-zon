@@ -9,3 +9,5 @@ El [plan de implementación](../PLAN-IMPLEMENTACION.md) reúne las decisiones de
 
 - [Stage 0](stage-0.md) — decisiones, resultados, arquitectura y pendientes.
 - [Stage 1](stage-1.md) — núcleo de cálculo, arquitectura y pruebas.
+- [Stage 3](stage-3.md) — adaptadores Photon y OSRM, cableado en la CLI y smoke pendiente.
+- [Inventario de pendientes](pendientes.md) — qué falta, por qué y cómo cerrarlo; texto listo para la descripción del PR.

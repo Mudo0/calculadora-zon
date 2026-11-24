@@ -26,7 +26,7 @@
 
 ## Cómo ejecutar el smoke pendiente
 
-Los servicios se levantan según el Anexo C del plan: `docker compose -f deploy/docker/docker-compose.maps.yml up -d`. Photon escucha en `2322` y OSRM en `5000`. La prueba `RealMapsSmokeTest` está etiquetada como `smoke` y se omite por defecto. Para ejecutarla con endpoints por defecto:
+Los servicios se levantan según el Anexo C del plan. El archivo `deploy/docker/docker-compose.maps.yml` aún no está materializado en el repositorio: hay que crearlo desde ese anexo y entonces ejecutar `docker compose -f deploy/docker/docker-compose.maps.yml up -d`. Photon escucha en `2322` y OSRM en `5000`. La prueba `RealMapsSmokeTest` está etiquetada como `smoke` y se omite por defecto. Para ejecutarla con endpoints por defecto:
 
 ```bash
 mvn '-Dzon.smoke=true' '-Dtest=RealMapsSmokeTest' test
@@ -44,9 +44,9 @@ Comprobaciones acordadas para el smoke: km de ruta plausibles contra la referenc
 
 ## Verificación y continuidad
 
-- [x] `mvn -o test`: 95 pruebas, 0 fallos. La prueba de smoke queda omitida por defecto.
+- [x] `mvn -o verify`: 97 pruebas unitarias, 0 fallos, 2 omitidas (smoke) y 1 de integración. `mvn -o test`: el smoke queda omitido por defecto.
 - [x] Las fixtures reales del Stage 0 ejercitan mapeo `[lon, lat]`, consulta con `q`/`limit`/`lat`/`lon`/`bbox`, 36370,9 m → 36,3709 km, selección determinista y respuestas sin ruta.
 - [ ] **[Pendiente]** Smoke con servicios reales: no se pudo ejecutar en este workspace. Los puertos 2322 y 5000 no responden y falta el ZIP portable `dist/zon-mapas-cordoba-stage0-windows-x64.zip`. Debe correrse en la PC con los servicios levantados.
 - [ ] **[Pendiente]** Integración posterior de los 7 alias y 59 respaldos GeoRef y la revisión de 515 localidades, diferida por decisión del usuario; sigue registrada en [stage-0-localidades.md](stage-0-localidades.md).
 
-[Plan de implementación](../PLAN-IMPLEMENTACION.md) · [Registro técnico de tareas](../odd/tasks/stage-3-real-maps.md) · [Stage 0](stage-0.md) · [Smoke test](../src/test/java/ar/zon/calculadora/smoke/RealMapsSmokeTest.java)
+[Inventario de pendientes](pendientes.md) · [Plan de implementación](../PLAN-IMPLEMENTACION.md) · [Registro técnico de tareas](../odd/tasks/stage-3-real-maps.md) · [Stage 0](stage-0.md) · [Smoke test](../src/test/java/ar/zon/calculadora/smoke/RealMapsSmokeTest.java)
