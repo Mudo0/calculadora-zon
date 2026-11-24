@@ -729,8 +729,8 @@ Each stage lists its scope, how to try it, and when it is done. Every stage ends
 Use this checklist to track progress. Mark a stage done only when its "Done when" criteria and required checks pass.
 
 - [x] **Stage 0 - Deployment baseline + map services contracts** (`stage-0-deploy-baseline`) - [results and Stage 3 follow-up](docs/stage-0.md).
-- [ ] **Stage 1 - Project skeleton + pure core** (`stage-1-project-core`) - independent; can run in parallel with Stage 0.
-- [ ] **Stage 2 - End-to-end CSV flow, offline** (`stage-2-csv-offline`) - depends on Stage 1.
+- [x] **Stage 1 - Project skeleton + pure core** (`stage-1-project-core`) - independent; can run in parallel with Stage 0.
+- [x] **Stage 2 - End-to-end CSV flow, offline** (`stage-2-csv-offline`) - depends on Stage 1.
 - [ ] **Stage 3 - Real maps: Photon + OSRM adapters** (`stage-3-real-maps`) - depends on Stages 0 and 2; can run in parallel with Stage 4 once dependencies are done.
 - [ ] **Stage 4 - XLSX support and CSV/XLSX parity** (`stage-4-xlsx-parity`) - depends on Stage 2; can run in parallel with Stage 3 once Stage 2 is done.
 - [ ] **Stage 5 - Optional offline bundle + bundled-services launcher** (`stage-5-offline-bundle`) - optional; depends on Stages 0, 3, 4; execute only if offline bundle packaging is selected.
