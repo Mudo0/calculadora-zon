@@ -31,7 +31,7 @@ class CliTest {
 
         assertThat(result.code()).isEqualTo(0);
         assertThat(result.out()).contains("filas=2").contains("errores=0");
-        assertThat(result.err()).contains("Procesando 2 filas");
+        assertThat(result.err()).contains("Leyendo y procesando");
         assertThat(Files.readAllBytes(output)).startsWith((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
         assertThat(Files.readString(output).split("\r\n")).hasSize(3);
         assertThat(Files.readString(summary)).contains("\"rows_total\":2").contains("\"errors\":0");

@@ -77,7 +77,7 @@ class OfflineSmokeIT {
         assertThat(result.code()).isEqualTo(1);
         assertThat(result.out()).contains("filas=15").contains("correctas=7")
                 .contains("omitidas=2").contains("errores=6").contains("km=");
-        assertThat(result.err()).contains("Procesando 15 filas");
+        assertThat(result.err()).contains("Leyendo y procesando");
 
         byte[] bytes = Files.readAllBytes(output);
         assertThat(bytes).startsWith((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);

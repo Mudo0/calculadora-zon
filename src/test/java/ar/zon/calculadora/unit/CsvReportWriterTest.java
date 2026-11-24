@@ -107,6 +107,26 @@ class CsvReportWriterTest {
         }
     }
 
+    @Test
+    void writesRowsIncrementallyBeforeCommitting() throws Exception {
+        Path output = directory.resolve("streamed.csv");
+
+        try (var report = new CsvReportWriter().open(output, config(""))) {
+            report.writeRow(Map.of("row_number", "1", "status", "OK"));
+            report.writeRow(Map.of("row_number", "2", "status", "ERROR"));
+            assertThat(Files.exists(output)).isFalse();
+            report.commit();
+        }
+
+        String[] lines = Files.readString(output).split("\r\n");
+        assertThat(lines).hasSize(3);
+        assertThat(lines[1]).contains("OK");
+        assertThat(lines[2]).contains("ERROR");
+        try (var paths = Files.list(directory)) {
+            assertThat(paths.map(path -> path.getFileName().toString())).containsExactly("streamed.csv");
+        }
+    }
+
     private CalculationConfig config(String extra) {
         String properties = """
                 output.format=csv

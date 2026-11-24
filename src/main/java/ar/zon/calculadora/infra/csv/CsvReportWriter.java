@@ -58,6 +58,36 @@ public final class CsvReportWriter {
      */
     public void write(Path path, List<Map<String, String>> rows, CalculationConfig config,
                       boolean force) throws BatchException {
+        try (Report report = open(path, config, force)) {
+            for (Map<String, String> row : rows) {
+                report.writeRow(row);
+            }
+            report.commit();
+        }
+    }
+
+    /**
+     * Abre una sesión de escritura rechazando un archivo existente.
+     *
+     * @param path ruta de salida
+     * @param config configuración del lote
+     * @return sesión abierta, con la cabecera ya escrita
+     * @throws BatchException si la salida existe o no se puede crear el temporal
+     */
+    public Report open(Path path, CalculationConfig config) throws BatchException {
+        return open(path, config, false);
+    }
+
+    /**
+     * Abre una sesión de escritura incremental sobre un archivo temporal.
+     *
+     * @param path ruta de salida
+     * @param config configuración del lote
+     * @param force reemplaza la salida existente cuando es verdadero
+     * @return sesión abierta, con la cabecera ya escrita
+     * @throws BatchException si la salida existe o no se puede crear el temporal
+     */
+    public Report open(Path path, CalculationConfig config, boolean force) throws BatchException {
         if (Files.isDirectory(path)) {
             throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR, "La salida es un directorio: " + path);
         }
@@ -68,34 +98,30 @@ public final class CsvReportWriter {
         Charset charset = charset(config);
         Path parent = path.toAbsolutePath().getParent();
         Path temporary;
+        OutputStream out;
         try {
             Files.createDirectories(parent);
             temporary = Files.createTempFile(parent, ".zon-report-", ".tmp");
+            out = Files.newOutputStream(temporary);
         } catch (IOException | RuntimeException e) {
             throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR, "No se pudo crear la salida: " + e.getMessage());
         }
         try {
-            try (OutputStream out = Files.newOutputStream(temporary);
-                 CsvWriter writer = CsvWriter.builder()
-                         .fieldSeparator(delimiter)
-                         .lineDelimiter(LineDelimiter.CRLF)
-                         .build(out, charset)) {
-                if (config.output().csvBom() && charset.equals(StandardCharsets.UTF_8)) {
-                    out.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
-                }
-                writer.writeRecord(HEADERS);
-                for (Map<String, String> row : rows) {
-                    writer.writeRecord(HEADERS.stream()
-                            .map(header -> guard(row.getOrDefault(header, ""), header))
-                            .toList());
-                }
+            CsvWriter writer = CsvWriter.builder()
+                    .fieldSeparator(delimiter)
+                    .lineDelimiter(LineDelimiter.CRLF)
+                    .build(out, charset);
+            if (config.output().csvBom() && charset.equals(StandardCharsets.UTF_8)) {
+                out.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
             }
-            Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+            writer.writeRecord(HEADERS);
+            return new Report(path, temporary, out, writer);
         } catch (IOException | RuntimeException e) {
+            closeQuietly(out);
             try {
                 Files.deleteIfExists(temporary);
             } catch (IOException ignored) {
-                // El archivo temporal queda huérfano solo si el sistema no permite borrarlo.
+                // El temporal queda huérfano solo si el sistema no permite borrarlo.
             }
             throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR, "No se pudo escribir " + path + ": " + e.getMessage());
         }
@@ -125,6 +151,79 @@ public final class CsvReportWriter {
         } catch (RuntimeException e) {
             throw new BatchException(ErrorCode.INVALID_CONFIG, "output.csv.charset no es válido: "
                     + config.output().csvCharset());
+        }
+    }
+
+    private static void closeQuietly(OutputStream out) {
+        try {
+            out.close();
+        } catch (IOException ignored) {
+            // El archivo ya se cerró o el sistema no permite cerrarlo.
+        }
+    }
+
+    /** Sesión de escritura que solo publica el informe al confirmarse. */
+    public static final class Report implements AutoCloseable {
+
+        private final Path path;
+        private final Path temporary;
+        private final OutputStream out;
+        private final CsvWriter writer;
+        private boolean committed;
+
+        private Report(Path path, Path temporary, OutputStream out, CsvWriter writer) {
+            this.path = path;
+            this.temporary = temporary;
+            this.out = out;
+            this.writer = writer;
+        }
+
+        /**
+         * Escribe una fila sin publicar el archivo todavía.
+         *
+         * @param cells valores indexados por columna lógica
+         * @throws BatchException si la fila no se puede escribir
+         */
+        public void writeRow(Map<String, String> cells) throws BatchException {
+            try {
+                writer.writeRecord(HEADERS.stream()
+                        .map(header -> guard(cells.getOrDefault(header, ""), header))
+                        .toList());
+            } catch (RuntimeException e) {
+                throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR,
+                        "No se pudo escribir " + path + ": " + e.getMessage());
+            }
+        }
+
+        /** Cierra el archivo temporal y lo renombra a la ruta definitiva. */
+        public void commit() throws BatchException {
+            try {
+                writer.close();
+                out.close();
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+                committed = true;
+            } catch (IOException | RuntimeException e) {
+                throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR,
+                        "No se pudo escribir " + path + ": " + e.getMessage());
+            }
+        }
+
+        @Override
+        public void close() {
+            if (committed) {
+                return;
+            }
+            try {
+                writer.close();
+            } catch (Exception ignored) {
+                // Se libera el temporal aunque el cierre falle.
+            }
+            closeQuietly(out);
+            try {
+                Files.deleteIfExists(temporary);
+            } catch (IOException ignored) {
+                // El temporal queda huérfano solo si el sistema no permite borrarlo.
+            }
         }
     }
 }

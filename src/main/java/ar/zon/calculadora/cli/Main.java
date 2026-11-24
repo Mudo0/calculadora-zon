@@ -6,10 +6,9 @@ import ar.zon.calculadora.core.emissions.EmissionFactorProvider;
 import ar.zon.calculadora.core.errors.BatchException;
 import ar.zon.calculadora.core.errors.ErrorCode;
 import ar.zon.calculadora.core.geocode.Geocoder;
-import ar.zon.calculadora.core.model.SurveyRow;
-import ar.zon.calculadora.core.pipeline.BatchOutcome;
 import ar.zon.calculadora.core.pipeline.CalculateSurveyBatchUseCase;
 import ar.zon.calculadora.core.route.Router;
+import ar.zon.calculadora.core.summary.BatchSummary;
 import ar.zon.calculadora.infra.config.PropertiesConfigLoader;
 import ar.zon.calculadora.infra.config.PropertiesEmissionFactorProvider;
 import ar.zon.calculadora.infra.csv.CsvReportWriter;
@@ -24,7 +23,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Properties;
@@ -100,18 +98,20 @@ public final class Main {
             Router router = (origin, destination) -> Optional.empty();
             EmissionFactorProvider factors = loadFactors(config);
 
-            System.err.println("Leyendo " + parsed.input());
-            List<SurveyRow> rows = new CsvRowReader().read(parsed.input(), config);
-            System.err.println("Procesando " + rows.size() + " filas");
-            BatchOutcome outcome = new CalculateSurveyBatchUseCase(config, geocoder, router, factors)
-                    .run(rows, parsed.destination(), parsed.event());
-            new CsvReportWriter().write(parsed.output(), outcome.reportRows(), config, parsed.force());
-            System.out.println(SummaryRenderer.console(outcome.summary()));
+            System.err.println("Leyendo y procesando " + parsed.input());
+            BatchSummary summary;
+            try (var rows = new CsvRowReader().read(parsed.input(), config);
+                 var report = new CsvReportWriter().open(parsed.output(), config, parsed.force())) {
+                summary = new CalculateSurveyBatchUseCase(config, geocoder, router, factors)
+                        .run(rows, parsed.destination(), parsed.event(), report::writeRow);
+                report.commit();
+            }
+            System.out.println(SummaryRenderer.console(summary));
             if (parsed.summary() != null) {
-                writeSummary(parsed.summary(), outcome);
+                writeSummary(parsed.summary(), summary);
             }
             System.err.println("Informe escrito en " + parsed.output());
-            return outcome.summary().errorRows() > 0 ? 1 : 0;
+            return summary.errorRows() > 0 ? 1 : 0;
         } catch (BatchException e) {
             System.err.println("ERROR " + e.code() + ": " + e.getMessage());
             return 2;
@@ -224,13 +224,13 @@ public final class Main {
         return path.toAbsolutePath().normalize();
     }
 
-    private static void writeSummary(Path path, BatchOutcome outcome) throws BatchException {
+    private static void writeSummary(Path path, BatchSummary summary) throws BatchException {
         try {
             Path parent = path.toAbsolutePath().getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            Files.writeString(path, SummaryRenderer.json(outcome.summary()), StandardCharsets.UTF_8);
+            Files.writeString(path, SummaryRenderer.json(summary), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR, "No se pudo escribir " + path);
         }

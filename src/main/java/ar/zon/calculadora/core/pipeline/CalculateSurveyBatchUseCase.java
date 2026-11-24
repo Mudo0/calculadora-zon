@@ -10,17 +10,17 @@ import ar.zon.calculadora.core.geocode.CandidateSelector;
 import ar.zon.calculadora.core.geocode.Geocoder;
 import ar.zon.calculadora.core.model.NormalizedTrip;
 import ar.zon.calculadora.core.model.RowResult;
+import ar.zon.calculadora.core.model.RowStatus;
 import ar.zon.calculadora.core.model.SurveyRow;
 import ar.zon.calculadora.core.processing.RowProcessor;
 import ar.zon.calculadora.core.route.Router;
 import ar.zon.calculadora.core.summary.BatchSummary;
 import ar.zon.calculadora.core.summary.SummaryAggregator;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /** Ejecuta el lote completo reutilizando el procesador de filas y el agregador del núcleo. */
 public final class CalculateSurveyBatchUseCase {
@@ -47,31 +47,32 @@ public final class CalculateSurveyBatchUseCase {
     }
 
     /**
-     * Procesa todas las filas y prepara el informe.
+     * Procesa las filas en forma incremental y entrega cada una al informe.
      *
      * @param rows filas leídas de la encuesta
      * @param destinationOverride destino de la CLI, o {@code null}
      * @param eventOverride nombre del evento de la CLI, o {@code null}
-     * @return filas del informe y resumen del lote
-     * @throws BatchException si no se puede resolver el destino del evento
+     * @param sink destino de cada fila del informe
+     * @return resumen del lote
+     * @throws BatchException si no se puede resolver el destino o escribir una fila
      */
-    public BatchOutcome run(List<SurveyRow> rows, String destinationOverride, String eventOverride)
-            throws BatchException {
+    public BatchSummary run(Iterable<SurveyRow> rows, String destinationOverride, String eventOverride,
+                            ReportSink sink) throws BatchException {
         ResolvedDestination destination = resolveDestination(destinationOverride);
         String event = eventOverride == null || eventOverride.isBlank()
                 ? config.event().eventName()
                 : eventOverride;
 
-        List<RowResult> results = new ArrayList<>();
-        List<Map<String, String>> reportRows = new ArrayList<>();
+        SummaryAggregator.Accumulator accumulator = new SummaryAggregator.Accumulator();
         for (SurveyRow row : rows) {
-            processor.process(row, destination.point()).ifPresent(result -> {
-                results.add(result);
-                reportRows.add(toCells(row, result, destination, event));
-            });
+            Optional<RowResult> processed = processor.process(row, destination.point());
+            if (processed.isPresent()) {
+                RowResult result = processed.get();
+                accumulator.accept(result);
+                sink.accept(toCells(row, result, destination, event));
+            }
         }
-        BatchSummary summary = SummaryAggregator.summarize(results);
-        return new BatchOutcome(List.copyOf(reportRows), summary);
+        return accumulator.summary();
     }
 
     private ResolvedDestination resolveDestination(String override) throws BatchException {
@@ -140,7 +141,8 @@ public final class CalculateSurveyBatchUseCase {
         cells.put("destino_label", destination.input());
         cells.put("destino_lat", format(destination.point().latitude(), 2));
         cells.put("destino_lon", format(destination.point().longitude(), 2));
-        cells.put("distance_mode", config.distance().mode());
+        cells.put("distance_mode", result.status() == RowStatus.SKIPPED_NON_MOTORIZED
+                ? "NOT_APPLICABLE" : config.distance().mode());
         cells.put("distance_fallback_used", String.valueOf(result.distance() != null && result.distance().fallback()));
         cells.put("distance_fallback_reason",
                 result.distance() != null && result.distance().fallback() ? "ROUTE_UNAVAILABLE" : "");

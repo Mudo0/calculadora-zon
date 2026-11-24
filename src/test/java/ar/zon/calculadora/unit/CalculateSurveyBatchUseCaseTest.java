@@ -14,6 +14,7 @@ import ar.zon.calculadora.support.FakeRouteCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -27,12 +28,13 @@ class CalculateSurveyBatchUseCaseTest {
         var geocoder = new FakeGeocoder().put("-31.4,-64.2", new GeoPoint(-31.4, -64.2));
         var router = new FakeRouteCalculator();
 
-        var outcome = useCase(config(true), geocoder, router)
-                .run(List.of(row("-31.4,-64.2")), null, null);
+        List<Map<String, String>> reportRows = new ArrayList<>();
+        var summary = useCase(config(true), geocoder, router)
+                .run(List.of(row("-31.4,-64.2")), null, null, reportRows::add);
 
         assertThat(router.calls()).isZero();
-        assertThat(outcome.reportRows()).hasSize(1);
-        Map<String, String> cells = outcome.reportRows().get(0);
+        assertThat(reportRows).hasSize(1);
+        Map<String, String> cells = reportRows.get(0);
         assertThat(cells).hasSize(30)
                 .containsEntry("row_number", "1")
                 .containsEntry("status", "OK")
@@ -46,9 +48,9 @@ class CalculateSurveyBatchUseCaseTest {
                 .containsEntry("distance_fallback_used", "false");
         assertThat(cells.get("distance_km")).contains(",");
         assertThat(cells.get("destino_lat")).isEqualTo("-31,42");
-        assertThat(outcome.summary().okRows()).isEqualTo(1);
-        assertThat(outcome.summary().errorRows()).isZero();
-        assertThat(outcome.summary().totalKm()).isPositive();
+        assertThat(summary.okRows()).isEqualTo(1);
+        assertThat(summary.errorRows()).isZero();
+        assertThat(summary.totalKm()).isPositive();
     }
 
     @Test
@@ -56,10 +58,11 @@ class CalculateSurveyBatchUseCaseTest {
         var geocoder = new FakeGeocoder().put("-31.5,-64.5", new GeoPoint(-31.5, -64.5));
         var useCase = useCase(config(false), geocoder, new FakeRouteCalculator());
 
-        var withOverride = useCase.run(List.of(row("-31.5,-64.5")), "-31.5,-64.5", null);
+        List<Map<String, String>> withOverride = new ArrayList<>();
+        useCase.run(List.of(row("-31.5,-64.5")), "-31.5,-64.5", null, withOverride::add);
 
-        assertThat(withOverride.reportRows().get(0)).containsEntry("destino_lat", "-31,50");
-        assertThatThrownBy(() -> useCase.run(List.of(row("-31.5,-64.5")), null, null))
+        assertThat(withOverride.get(0)).containsEntry("destino_lat", "-31,50");
+        assertThatThrownBy(() -> useCase.run(List.of(row("-31.5,-64.5")), null, null, cells -> {}))
                 .isInstanceOf(BatchException.class)
                 .extracting("code")
                 .isEqualTo(ErrorCode.DESTINATION_NOT_RESOLVED);
@@ -67,14 +70,28 @@ class CalculateSurveyBatchUseCaseTest {
 
     @Test
     void rowErrorsDoNotFailTheBatch() throws Exception {
-        var outcome = useCase(config(true), new FakeGeocoder(), new FakeRouteCalculator())
-                .run(List.of(row("Desconocido")), null, null);
+        List<Map<String, String>> reportRows = new ArrayList<>();
+        var summary = useCase(config(true), new FakeGeocoder(), new FakeRouteCalculator())
+                .run(List.of(row("Desconocido")), null, null, reportRows::add);
 
-        assertThat(outcome.reportRows().get(0))
+        assertThat(reportRows.get(0))
                 .containsEntry("status", "ERROR")
                 .containsEntry("error_code", "LOCATION_NOT_FOUND");
-        assertThat(outcome.summary().errorRows()).isEqualTo(1);
-        assertThat(outcome.summary().okRows()).isZero();
+        assertThat(summary.errorRows()).isEqualTo(1);
+        assertThat(summary.okRows()).isZero();
+    }
+
+    @Test
+    void marksNonMotorizedRowsAsNotApplicable() throws Exception {
+        List<Map<String, String>> reportRows = new ArrayList<>();
+        var summary = useCase(config(true), new FakeGeocoder(), new FakeRouteCalculator())
+                .run(List.of(row("pie", "-31.4,-64.2")), null, null, reportRows::add);
+
+        assertThat(reportRows.get(0))
+                .containsEntry("status", "SKIPPED_NON_MOTORIZED")
+                .containsEntry("distance_mode", "NOT_APPLICABLE");
+        assertThat(summary.skippedRows()).isEqualTo(1);
+        assertThat(summary.totalKm()).isZero();
     }
 
     private CalculateSurveyBatchUseCase useCase(CalculationConfig config, FakeGeocoder geocoder,
@@ -105,10 +122,14 @@ class CalculateSurveyBatchUseCaseTest {
     }
 
     private SurveyRow row(String origin) {
+        return row("auto", origin);
+    }
+
+    private SurveyRow row(String transport, String origin) {
         return new SurveyRow(1, Map.of(
                 "personas", "2",
                 "origen", origin,
-                "transporte", "auto",
+                "transporte", transport,
                 "combustible", "nafta"));
     }
 }

@@ -19,15 +19,28 @@ public final class SummaryAggregator {
      * @return resumen con totales, conteos y advertencias
      */
     public static BatchSummary summarize(List<RowResult> rows) {
-        double km = 0;
-        double kg = 0;
-        int ok = 0;
-        int errors = 0;
-        int skipped = 0;
-        int fallbacks = 0;
-        boolean placeholder = false;
+        Accumulator accumulator = new Accumulator();
+        rows.forEach(accumulator::accept);
+        return accumulator.summary();
+    }
 
-        for (RowResult row : rows) {
+    /** Acumula el resumen fila por fila sin conservar los resultados. */
+    public static final class Accumulator {
+
+        private double km;
+        private double kg;
+        private int ok;
+        private int errors;
+        private int skipped;
+        private int fallbacks;
+        private boolean placeholder;
+
+        /**
+         * Incorpora una fila al resumen.
+         *
+         * @param row resultado de la fila
+         */
+        public void accept(RowResult row) {
             switch (row.status()) {
                 case OK -> ok++;
                 case OK_FALLBACK_HAVERSINE -> {
@@ -47,10 +60,17 @@ public final class SummaryAggregator {
             }
         }
 
-        List<String> warnings = new ArrayList<>();
-        if (placeholder) {
-            warnings.add("USING_PLACEHOLDER_FACTORS");
+        /**
+         * Cierra el resumen acumulado.
+         *
+         * @return resumen con totales, conteos y advertencias
+         */
+        public BatchSummary summary() {
+            List<String> warnings = new ArrayList<>();
+            if (placeholder) {
+                warnings.add("USING_PLACEHOLDER_FACTORS");
+            }
+            return new BatchSummary(km, kg, ok, errors, skipped, fallbacks, List.copyOf(warnings));
         }
-        return new BatchSummary(km, kg, ok, errors, skipped, fallbacks, List.copyOf(warnings));
     }
 }
