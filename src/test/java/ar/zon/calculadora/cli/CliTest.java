@@ -131,6 +131,41 @@ class CliTest {
     }
 
     @Test
+    void refusesSummaryThatOverwritesTheFactorFile() throws Exception {
+        Path config = config(true);
+        Path factors = directory.resolve("factors.properties");
+        String original = Files.readString(factors);
+        Path input = input("""
+                personas;origen;transporte;combustible
+                2;-31.4,-64.2;auto;nafta
+                """);
+
+        Captured result = run("--input", input.toString(), "--output", directory.resolve("factors-collision.csv").toString(),
+                "--config", config.toString(), "--summary", factors.toString());
+
+        assertThat(result.code()).isEqualTo(2);
+        assertThat(Files.readString(factors)).isEqualTo(original);
+    }
+
+    @Test
+    void refusesSummaryThatOverwritesTheGeocoderCatalog() throws Exception {
+        Path catalog = directory.resolve("catalog.txt");
+        Files.writeString(catalog, "original catalog");
+        Path config = config(true, "geocoder.mode=FILE\ngeocoder.file="
+                + catalog.toString().replace('\\', '/') + "\n");
+        Path input = input("""
+                personas;origen;transporte;combustible
+                2;-31.4,-64.2;auto;nafta
+                """);
+
+        Captured result = run("--input", input.toString(), "--output", directory.resolve("catalog-collision.csv").toString(),
+                "--config", config.toString(), "--summary", catalog.toString());
+
+        assertThat(result.code()).isEqualTo(2);
+        assertThat(Files.readString(catalog)).isEqualTo("original catalog");
+    }
+
+    @Test
     void printsHelpVersionAndUsageWithoutArguments() {
         assertThat(run("--help").out()).contains("Uso:");
         assertThat(run("--version").out()).contains(Main.VERSION);
@@ -144,6 +179,10 @@ class CliTest {
     }
 
     private Path config(boolean withDestination) throws Exception {
+        return config(withDestination, "");
+    }
+
+    private Path config(boolean withDestination, String extra) throws Exception {
         Path factors = directory.resolve("factors.properties");
         Files.writeString(factors, """
                 factor.auto.nafta.basis=vehicle_km
@@ -163,7 +202,7 @@ class CliTest {
                 distance.mode=HAVERSINE
                 distance.decimals=2
                 """ + destination + "factors.file="
-                + factors.toString().replace('\\', '/') + "\n");
+                + factors.toString().replace('\\', '/') + "\n" + extra);
         return file;
     }
 

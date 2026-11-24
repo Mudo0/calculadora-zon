@@ -212,18 +212,31 @@ public final class CsvRowReader {
         char best = ';';
         int bestCount = 0;
         for (char candidate : new char[] {';', ',', '\t'}) {
-            int count = 0;
-            for (int i = 0; i < header.length(); i++) {
-                if (header.charAt(i) == candidate) {
-                    count++;
-                }
-            }
+            int count = countOutsideQuotes(header, candidate);
             if (count > bestCount) {
                 bestCount = count;
                 best = candidate;
             }
         }
         return best;
+    }
+
+    private static int countOutsideQuotes(String text, char candidate) {
+        int count = 0;
+        boolean quoted = false;
+        for (int i = 0; i < text.length(); i++) {
+            char current = text.charAt(i);
+            if (current == '"') {
+                if (quoted && i + 1 < text.length() && text.charAt(i + 1) == '"') {
+                    i++;
+                } else {
+                    quoted = !quoted;
+                }
+            } else if (!quoted && current == candidate) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static boolean startsWith(byte[] bytes, int... prefix) {

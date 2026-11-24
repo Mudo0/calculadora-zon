@@ -87,6 +87,7 @@ public final class Main {
 
             CalculationConfig config = loadConfig(parsed.config(), parsed.services());
             ConfigValidator.validate(config);
+            validateConfiguredPaths(parsed, config);
             if (config.services().mode().equals("BUNDLED")) {
                 throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE, "Stage 2 no incluye servicios locales");
             }
@@ -217,6 +218,22 @@ public final class Main {
                 || sameFile(summary, args.config())) {
             throw new BatchException(ErrorCode.INVALID_CONFIG,
                     "--summary no puede apuntar a la entrada, la salida ni la configuración");
+        }
+    }
+
+    private static void validateConfiguredPaths(Arguments args, CalculationConfig config) throws BatchException {
+        if (args.summary() == null) {
+            return;
+        }
+        Path summary = absolute(args.summary());
+        boolean collides = sameFile(summary, Path.of(config.factorsFile()));
+        String catalog = config.geocoder().file();
+        if ("FILE".equals(config.geocoder().mode()) && catalog != null && !catalog.isBlank()) {
+            collides |= sameFile(summary, Path.of(catalog));
+        }
+        if (collides) {
+            throw new BatchException(ErrorCode.INVALID_CONFIG,
+                    "--summary no puede apuntar a los archivos leídos desde la configuración");
         }
     }
 

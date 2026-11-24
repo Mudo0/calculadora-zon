@@ -121,6 +121,18 @@ class CsvRowReaderTest {
         assertThat(values.get(0).cells()).containsEntry("origen", "Córdoba");
     }
 
+    @Test
+    void ignoresDelimitersInsideQuotedHeaderFields() throws Exception {
+        Path file = write("quoted-header.csv",
+                "\"nota;;;;;;\",personas,origen,transporte\n\"nota;;;;;;\",2,Cordoba,auto\n"
+                        .getBytes(StandardCharsets.UTF_8));
+
+        var values = rows(file, config(""));
+
+        assertThat(values).hasSize(1);
+        assertThat(values.get(0).cells()).containsEntry("origen", "Cordoba");
+    }
+
     private List<SurveyRow> rows(Path file, CalculationConfig config) throws Exception {
         try (var stream = new CsvRowReader().read(file, config)) {
             return StreamSupport.stream(stream.spliterator(), false).toList();
