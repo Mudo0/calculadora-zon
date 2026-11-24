@@ -1,6 +1,6 @@
 # Documentación técnica
 
-- [PRD original](../PRD — Calculadora de ITEC.md): documento base de requisitos.
+- [PRD original](/PRD%20–%20Calculadora%20de%20ITEC.md): documento base de requisitos.
 - [Plan de implementación](../PLAN-IMPLEMENTACION.md): decisiones, contratos, etapas y anexos.
 - [Deltas del PRD y los ADR](prd-delta.md): cambios aplicados al Incremento 1; el PRD permanece en la ruta original.
 
