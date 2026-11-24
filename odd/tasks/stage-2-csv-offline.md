@@ -42,7 +42,7 @@ S9 - Risk: adding `de.siegmar:fastcsv` to `pom.xml` is a new dependency (high-ri
 - T2 — S1,S5 — `CsvReportWriter` with 30 columns, es-AR defaults, BOM, injection guard, temp+rename, `--force` — inline — RED: `CsvReportWriterTest` could not resolve the new writer class — GREEN: 5 new tests — commit: 008bc81
 - T3 — S1,S8 — `CoordinatesGeocoder`, `FileGeocoder`, test fakes and `CalculateSurveyBatchUseCase` with HAVERSINE — inline — RED: `GeocoderAdaptersTest` and `CalculateSurveyBatchUseCaseTest` could not resolve the new classes — GREEN: 6 new tests — commit: 26f3840
 - T4 — S4,S7 — minimal CLI with all arguments, stderr progress, console summary and exit codes — inline — RED: `CliTest` could not resolve `Main.VERSION` and `Main.run` — GREEN: 4 new tests — commit: 024a761
-- T5 — S2,S7 — synthetic sample, offline end-to-end smoke, `mvn verify` and closure — inline — verification-only task (no new production behavior, so no RED cycle applies): 1 integration test plus a real `java -jar` smoke, both green — commit: 693d28e
+- T5 — S2,S7 — synthetic sample, offline end-to-end smoke, `mvn verify` and closure — inline — verification-only task (no new production behavior, so no RED cycle applies): 1 integration test plus a real `java -jar` smoke, both green — commit: 4a51321
 
 ## Log
 
