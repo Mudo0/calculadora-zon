@@ -3,12 +3,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class CliTest {
 
@@ -105,6 +107,27 @@ class CliTest {
 
         assertThat(result.code()).isEqualTo(2);
         assertThat(Files.readString(output)).isEqualTo("original report");
+    }
+
+    @Test
+    void refusesSummaryHardLinkedToInput() throws Exception {
+        Path input = input("""
+                personas;origen;transporte;combustible
+                2;-31.4,-64.2;auto;nafta
+                """);
+        Path link = directory.resolve("input-link.csv");
+        try {
+            Files.createLink(link, input);
+        } catch (IOException | UnsupportedOperationException e) {
+            assumeTrue(false, "hard links are not supported on this file system");
+        }
+        String original = Files.readString(input);
+
+        Captured result = run("--input", input.toString(), "--output", directory.resolve("linked.csv").toString(),
+                "--config", config(true).toString(), "--summary", link.toString());
+
+        assertThat(result.code()).isEqualTo(2);
+        assertThat(Files.readString(input)).isEqualTo(original);
     }
 
     @Test

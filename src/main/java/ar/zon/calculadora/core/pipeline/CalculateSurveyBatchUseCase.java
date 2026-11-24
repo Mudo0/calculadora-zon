@@ -143,6 +143,12 @@ public final class CalculateSurveyBatchUseCase {
         cells.put("destino_lon", format(destination.point().longitude(), 2));
         cells.put("distance_mode", result.status() == RowStatus.SKIPPED_NON_MOTORIZED
                 ? "NOT_APPLICABLE" : config.distance().mode());
+        if (result.status() == RowStatus.SKIPPED_NON_MOTORIZED) {
+            // La sección 9.4 del plan exige ceros explícitos en estas filas.
+            cells.put("distance_km", "0");
+            cells.put("consumption_value", "0");
+            cells.put("emissions_kgco2e", "0");
+        }
         cells.put("distance_fallback_used", String.valueOf(result.distance() != null && result.distance().fallback()));
         cells.put("distance_fallback_reason",
                 result.distance() != null && result.distance().fallback() ? "ROUTE_UNAVAILABLE" : "");

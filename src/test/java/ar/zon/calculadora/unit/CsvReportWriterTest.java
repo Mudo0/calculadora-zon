@@ -127,6 +127,22 @@ class CsvReportWriterTest {
         }
     }
 
+    @Test
+    void refusesToPublishWhenOutputAppearsAfterOpen() throws Exception {
+        Path output = directory.resolve("race.csv");
+
+        try (var report = new CsvReportWriter().open(output, config(""))) {
+            Files.writeString(output, "created by another process");
+            report.writeRow(Map.of("row_number", "1"));
+            assertThatThrownBy(report::commit)
+                    .isInstanceOf(BatchException.class)
+                    .extracting("code")
+                    .isEqualTo(ErrorCode.OUTPUT_EXISTS);
+        }
+
+        assertThat(Files.readString(output)).isEqualTo("created by another process");
+    }
+
     private CalculationConfig config(String extra) {
         String properties = """
                 output.format=csv

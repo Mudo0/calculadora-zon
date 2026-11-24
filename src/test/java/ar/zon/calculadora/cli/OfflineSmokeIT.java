@@ -9,6 +9,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -92,6 +93,13 @@ class OfflineSmokeIT {
         assertThat(String.join("\n", lines)).contains("SKIPPED_NON_MOTORIZED")
                 .contains("UNKNOWN_TRANSPORT").contains("LOCATION_NOT_FOUND")
                 .contains("'=CMD('calc')");
+        String[] skipped = Arrays.stream(lines)
+                .filter(line -> line.contains("SKIPPED_NON_MOTORIZED"))
+                .findFirst().orElseThrow().split(";", -1);
+        assertThat(skipped[CsvReportWriter.HEADERS.indexOf("distance_mode")]).isEqualTo("NOT_APPLICABLE");
+        assertThat(skipped[CsvReportWriter.HEADERS.indexOf("distance_km")]).isEqualTo("0");
+        assertThat(skipped[CsvReportWriter.HEADERS.indexOf("consumption_value")]).isEqualTo("0");
+        assertThat(skipped[CsvReportWriter.HEADERS.indexOf("emissions_kgco2e")]).isEqualTo("0");
 
         assertThat(Files.readString(summary)).contains("\"rows_total\":15").contains("\"ok\":7")
                 .contains("\"skipped\":2").contains("\"errors\":6");

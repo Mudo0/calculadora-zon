@@ -12,7 +12,10 @@ import de.siegmar.fastcsv.reader.CsvRecord;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -45,7 +48,8 @@ public final class CsvRowReader {
             throw new BatchException(ErrorCode.INPUT_UNREADABLE, "No se pudo leer " + path + ": " + e.getMessage());
         }
         Charset charset = detectCharset(sample, config.input().csvCharset());
-        char delimiter = detectDelimiter(sample, charset, config.input().csvDelimiter());
+        char delimiter = detectDelimiter(sample, charset, config.input().csvDelimiter(),
+                config.input().headerRow());
 
         CsvReader<CsvRecord> reader;
         try {
@@ -177,18 +181,18 @@ public final class CsvRowReader {
         if (startsWith(bytes, 0xFF, 0xFE)) {
             return StandardCharsets.UTF_16LE;
         }
-        try {
-            StandardCharsets.UTF_8.newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT)
-                    .decode(ByteBuffer.wrap(bytes));
-            return StandardCharsets.UTF_8;
-        } catch (Exception e) {
-            return Charset.forName("windows-1252");
-        }
+        // endOfInput=false tolera una secuencia multibyte cortada por el límite de la muestra.
+        CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+        CoderResult result = decoder.decode(ByteBuffer.wrap(bytes), CharBuffer.allocate(bytes.length), false);
+        return result.isUnderflow()
+                ? StandardCharsets.UTF_8
+                : Charset.forName("windows-1252");
     }
 
-    private static char detectDelimiter(byte[] bytes, Charset charset, String configured) throws BatchException {
+    private static char detectDelimiter(byte[] bytes, Charset charset, String configured, int headerRow)
+            throws BatchException {
         if (!"auto".equalsIgnoreCase(configured)) {
             if (configured.length() != 1) {
                 throw new BatchException(ErrorCode.INVALID_CONFIG, "input.csv.delimiter debe ser un carácter o auto");
@@ -196,14 +200,21 @@ public final class CsvRowReader {
             return configured.charAt(0);
         }
         String text = new String(bytes, charset).replace("\uFEFF", "");
+        for (int index = 1; index < headerRow; index++) {
+            int newline = text.indexOf('\n');
+            if (newline < 0) {
+                break;
+            }
+            text = text.substring(newline + 1);
+        }
         int end = text.indexOf('\n');
-        String firstLine = end < 0 ? text : text.substring(0, end);
+        String header = end < 0 ? text : text.substring(0, end);
         char best = ';';
         int bestCount = 0;
         for (char candidate : new char[] {';', ',', '\t'}) {
             int count = 0;
-            for (int i = 0; i < firstLine.length(); i++) {
-                if (firstLine.charAt(i) == candidate) {
+            for (int i = 0; i < header.length(); i++) {
+                if (header.charAt(i) == candidate) {
                     count++;
                 }
             }

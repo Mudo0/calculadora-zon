@@ -89,7 +89,10 @@ class CalculateSurveyBatchUseCaseTest {
 
         assertThat(reportRows.get(0))
                 .containsEntry("status", "SKIPPED_NON_MOTORIZED")
-                .containsEntry("distance_mode", "NOT_APPLICABLE");
+                .containsEntry("distance_mode", "NOT_APPLICABLE")
+                .containsEntry("distance_km", "0")
+                .containsEntry("consumption_value", "0")
+                .containsEntry("emissions_kgco2e", "0");
         assertThat(summary.skippedRows()).isEqualTo(1);
         assertThat(summary.totalKm()).isZero();
     }

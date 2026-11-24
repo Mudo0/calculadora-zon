@@ -95,6 +95,32 @@ class CsvRowReaderTest {
         assertThat(values.get(0).cells()).containsEntry("origen", "Cordoba");
     }
 
+    @Test
+    void detectsDelimiterOnTheConfiguredHeaderRow() throws Exception {
+        Path file = write("offset-commas.csv",
+                "Encuesta;de;movilidad\r\npersonas,origen,transporte\r\n2,Cordoba,auto\r\n"
+                        .getBytes(StandardCharsets.UTF_8));
+
+        var values = rows(file, config("input.headerRow=2\n"));
+
+        assertThat(values).hasSize(1);
+        assertThat(values.get(0).cells()).containsEntry("origen", "Cordoba");
+    }
+
+    @Test
+    void detectsUtf8WhenTheSampleEndsMidCharacter() throws Exception {
+        byte[] title = "A".repeat(65_535).getBytes(StandardCharsets.US_ASCII);
+        byte[] partial = "ó".getBytes(StandardCharsets.UTF_8);
+        byte[] rest = "\r\npersonas;origen;transporte\r\n2;Córdoba;auto\r\n"
+                .getBytes(StandardCharsets.UTF_8);
+        Path file = write("split.csv", concatenate(concatenate(title, partial), rest));
+
+        var values = rows(file, config("input.headerRow=2\n"));
+
+        assertThat(values).hasSize(1);
+        assertThat(values.get(0).cells()).containsEntry("origen", "Córdoba");
+    }
+
     private List<SurveyRow> rows(Path file, CalculationConfig config) throws Exception {
         try (var stream = new CsvRowReader().read(file, config)) {
             return StreamSupport.stream(stream.spliterator(), false).toList();

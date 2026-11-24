@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -115,7 +116,7 @@ public final class CsvReportWriter {
                 out.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
             }
             writer.writeRecord(HEADERS);
-            return new Report(path, temporary, out, writer);
+            return new Report(path, temporary, out, writer, force);
         } catch (IOException | RuntimeException e) {
             closeQuietly(out);
             try {
@@ -169,13 +170,15 @@ public final class CsvReportWriter {
         private final Path temporary;
         private final OutputStream out;
         private final CsvWriter writer;
+        private final boolean force;
         private boolean committed;
 
-        private Report(Path path, Path temporary, OutputStream out, CsvWriter writer) {
+        private Report(Path path, Path temporary, OutputStream out, CsvWriter writer, boolean force) {
             this.path = path;
             this.temporary = temporary;
             this.out = out;
             this.writer = writer;
+            this.force = force;
         }
 
         /**
@@ -195,13 +198,25 @@ public final class CsvReportWriter {
             }
         }
 
-        /** Cierra el archivo temporal y lo renombra a la ruta definitiva. */
+        /**
+         * Cierra el archivo temporal y lo renombra a la ruta definitiva.
+         * Sin {@code --force}, un destino creado mientras tanto conserva su contenido.
+         */
         public void commit() throws BatchException {
             try {
                 writer.close();
                 out.close();
-                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+                if (!force && Files.exists(path)) {
+                    throw new FileAlreadyExistsException(path.toString());
+                }
+                if (force) {
+                    Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    Files.move(temporary, path);
+                }
                 committed = true;
+            } catch (FileAlreadyExistsException e) {
+                throw new BatchException(ErrorCode.OUTPUT_EXISTS, "La salida ya existe: " + path);
             } catch (IOException | RuntimeException e) {
                 throw new BatchException(ErrorCode.OUTPUT_WRITE_ERROR,
                         "No se pudo escribir " + path + ": " + e.getMessage());

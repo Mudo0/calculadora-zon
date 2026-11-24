@@ -213,10 +213,25 @@ public final class Main {
             return;
         }
         Path summary = absolute(args.summary());
-        if (summary.equals(absolute(args.input())) || summary.equals(absolute(args.output()))
-                || summary.equals(absolute(args.config()))) {
+        if (sameFile(summary, args.input()) || sameFile(summary, args.output())
+                || sameFile(summary, args.config())) {
             throw new BatchException(ErrorCode.INVALID_CONFIG,
                     "--summary no puede apuntar a la entrada, la salida ni la configuración");
+        }
+    }
+
+    private static boolean sameFile(Path summary, Path other) {
+        Path candidate = absolute(other);
+        if (summary.equals(candidate)) {
+            return true;
+        }
+        if (!Files.exists(summary) || !Files.exists(candidate)) {
+            return false;
+        }
+        try {
+            return Files.isSameFile(summary, candidate);
+        } catch (IOException e) {
+            return false;
         }
     }
 
