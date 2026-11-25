@@ -131,6 +131,41 @@ class PhotonGeocoderTest {
     }
 
     @Test
+    void exactMatchStillWinsWithSeveralNamelessCandidates() throws IOException {
+        String exact = feature("Córdoba", -64.1888, -31.4201);
+        String first = feature("", -64.0, -31.5);
+        String second = feature("", -64.1, -31.6);
+
+        serve(collection(first, exact, second));
+        GeoCandidate selected = CandidateSelector.select(geocoder(null, null, null).geocode("Córdoba")).orElseThrow();
+        server.stop(0);
+
+        serve(collection(second, first, exact));
+        GeoCandidate reversed = CandidateSelector.select(geocoder(null, null, null).geocode("Córdoba")).orElseThrow();
+
+        assertThat(selected.label()).isEqualTo("Córdoba");
+        assertThat(selected.point().latitude()).isEqualTo(-31.4201);
+        assertThat(reversed.label()).isEqualTo("Córdoba");
+        assertThat(reversed.point().latitude()).isEqualTo(-31.4201);
+    }
+
+    @Test
+    void namelessCandidatesAtDifferentPointsAreAmbiguousRegardlessOfResponseOrder() throws IOException {
+        String first = feature("", -64.0, -31.5);
+        String second = feature("", -64.1, -31.6);
+
+        serve(collection(first, second));
+        List<GeoCandidate> natural = geocoder(null, null, null).geocode("Córdoba");
+        server.stop(0);
+
+        serve(collection(second, first));
+        List<GeoCandidate> reversed = geocoder(null, null, null).geocode("Córdoba");
+
+        assertThat(natural).isEmpty();
+        assertThat(reversed).isEmpty();
+    }
+
+    @Test
     void emptyFeaturesProduceNoCandidates() throws IOException {
         serve("{\"features\":[]}");
 

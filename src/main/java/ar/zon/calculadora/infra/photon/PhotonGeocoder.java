@@ -11,8 +11,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Geocodificador Photon que convierte su GeoJSON en candidatos del dominio. */
 public final class PhotonGeocoder implements Geocoder {
@@ -57,6 +59,7 @@ public final class PhotonGeocoder implements Geocoder {
         JsonNode features = json.path("features");
         List<GeoCandidate> candidates = new ArrayList<>();
         Map<String, GeoPoint> pointsByName = new HashMap<>();
+        Set<GeoPoint> namelessPoints = new HashSet<>();
         for (JsonNode feature : features) {
             String name = feature.path("properties").path("name").asText("");
             GeoCandidate candidate = toCandidate(feature, text, name);
@@ -69,8 +72,14 @@ public final class PhotonGeocoder implements Geocoder {
                 if (previous != null && !previous.equals(candidate.point())) {
                     return List.of();
                 }
+            } else {
+                namelessPoints.add(candidate.point());
             }
             candidates.add(candidate);
+        }
+        // Sin nombre no hay forma de desempatar: elegir el primero dependería del orden de Photon.
+        if (namelessPoints.size() > 1 && candidates.stream().noneMatch(c -> c.score() == 2.0)) {
+            return List.of();
         }
         return List.copyOf(candidates);
     }
