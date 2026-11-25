@@ -25,7 +25,7 @@ S5 - Convención: cada issue tiene su propia PR con el nombre del stage en el t�
 
 - T1 — S1 — #4 hardening de `HttpJsonClient` con RED -> GREEN — rama `fix/stage3-http-hardening`, PR #10 (base `stage-3-real-maps`), commit `0200b22` — estado: completo, `mvn -o verify` en verde (110 tests, 2 omitidos, 1 IT)
 - T2 — S2 — #9 prueba CSV de `distance_straight_km` en BOTH — rama `test/stage3-both-straight-km`, PR #11, commit `65bf9b7` — estado: completo, `mvn -o verify` en verde (111 tests, 2 omitidos, 1 IT); sin cambios en producción
-- T3 — S3 — #5 verificación del aviso de CVE y decisión documentada — rama `chore/stage3-jackson-cve`, PR propia, commit `81182b0` — estado: completo en documento; sin cambios en `pom.xml`
+- T3 — S3 — #5 verificación del aviso de CVE y decisión documentada — rama `chore/stage3-jackson-cve`, PR propia, commit `5ff8e4f` — estado: completo en documento; sin cambios en `pom.xml`
 
 ## Log
 
