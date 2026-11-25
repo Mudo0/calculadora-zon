@@ -64,6 +64,8 @@ Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades co
 
 **Cierre:** decisión documentada con evidencia, con o sin cambio de versión.
 
+**Estado (2026-11-24):** verificado. Los avisos son reales y `2.21.5` está en el rango afectado, pero las vías de explotación requieren enlace typed a `Duration`/`Path` o polimorfismo, que este proyecto no usa; solo llama a `readTree`. Se decide no subir la versión. Evidencia, fuentes oficiales y condiciones para revisar: `docs/jackson-cve-verificacion.md`.
+
 ---
 
 ## P3 — Integración de alias y respaldos GeoRef (diferida por el usuario) — [#6](https://github.com/Mudo0/calculadora-zon/issues/6)
