@@ -60,9 +60,10 @@ class Stage3CliTest {
         String report = Files.readString(output);
         String road = headerValue(report, "distance_km");
         String straight = headerValue(report, "distance_straight_km");
-        assertThat(road).isNotBlank();
-        assertThat(straight).isNotBlank();
-        assertThat(road).isNotEqualTo(straight);
+        // OSRM 36370,9 m; Haversine desde Alta Gracia (fixture Photon) al destino; 10 l/100 km por 2 kg/l.
+        assertThat(road).isEqualTo("36,3709");
+        assertThat(straight).isEqualTo("35,1922");
+        assertThat(headerValue(report, "emissions_kgco2e")).isEqualTo("7,2742");
         assertThat(headerValue(report, "distance_mode")).isEqualTo("BOTH");
     }
 
