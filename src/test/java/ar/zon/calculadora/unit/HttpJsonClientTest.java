@@ -61,6 +61,38 @@ class HttpJsonClientTest {
     }
 
     @Test
+    void invalidJsonCountsAsFailureAndDoesNotResetGuard() throws IOException {
+        server = serve(request -> respond(request, 200, "not json"));
+        var guard = new ServiceFailureGuard(2);
+        var client = new HttpJsonClient(url(), 1000, 0, guard);
+
+        assertThatThrownBy(() -> client.getJson("/api?q=x"))
+                .isInstanceOf(ServiceCallException.class);
+        assertThat(guard.consecutiveFailures()).isEqualTo(1);
+    }
+
+    @Test
+    void clientErrorDoesNotCountAsGuardFailure() throws IOException {
+        server = serve(request -> respond(request, 404, "{\"error\":\"missing\"}"));
+        var guard = new ServiceFailureGuard(1);
+        var client = new HttpJsonClient(url(), 1000, 0, guard);
+
+        assertThatThrownBy(() -> client.getJson("/api?q=x"))
+                .isInstanceOf(ServiceCallException.class);
+        assertThat(guard.consecutiveFailures()).isZero();
+    }
+
+    @Test
+    void rejectsInvalidConstructorArguments() {
+        assertThatThrownBy(() -> new HttpJsonClient(null, 1000, 0, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new HttpJsonClient("http://localhost", 0, 0, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new HttpJsonClient("http://localhost", 1000, -1, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void guardAbortsBatchAfterConsecutiveFailuresAndResetsOnSuccess() {
         var guard = new ServiceFailureGuard(2);
 

@@ -31,6 +31,15 @@ public final class HttpJsonClient {
      * @param guard guardia de fallos consecutivos del servicio, o {@code null}
      */
     public HttpJsonClient(String baseUrl, int timeoutMs, int retries, ServiceFailureGuard guard) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException("http.baseUrl es obligatoria");
+        }
+        if (timeoutMs <= 0) {
+            throw new IllegalArgumentException("http.timeoutMs debe ser mayor que cero");
+        }
+        if (retries < 0) {
+            throw new IllegalArgumentException("http.retries no puede ser negativo");
+        }
         String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.baseUrl = normalized;
         this.timeoutMs = timeoutMs;
@@ -66,10 +75,11 @@ public final class HttpJsonClient {
                     throw new ServiceCallException("Servicio devolvió " + response.statusCode(), null,
                             response.statusCode(), response.body());
                 }
+                JsonNode json = MAPPER.readTree(response.body());
                 if (guard != null) {
                     guard.recordSuccess();
                 }
-                return MAPPER.readTree(response.body());
+                return json;
             } catch (IOException e) {
                 last = new ServiceCallException("No se pudo consultar el servicio", e);
             } catch (InterruptedException e) {
