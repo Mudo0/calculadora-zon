@@ -69,7 +69,7 @@ public final class CalculateSurveyBatchUseCase {
             if (processed.isPresent()) {
                 RowResult result = processed.get();
                 accumulator.accept(result);
-                sink.accept(toCells(row, result, destination, event));
+                sink.accept(row, toCells(row, result, destination, event));
             }
         }
         return accumulator.summary();

@@ -6,6 +6,7 @@ import ar.zon.calculadora.core.emissions.EmissionFactorProvider;
 import ar.zon.calculadora.core.errors.BatchException;
 import ar.zon.calculadora.core.errors.ErrorCode;
 import ar.zon.calculadora.core.geocode.Geocoder;
+import ar.zon.calculadora.core.ingest.SurveyRows;
 import ar.zon.calculadora.core.pipeline.CalculateSurveyBatchUseCase;
 import ar.zon.calculadora.core.route.Router;
 import ar.zon.calculadora.core.summary.BatchSummary;
@@ -15,11 +16,14 @@ import ar.zon.calculadora.infra.csv.CsvReportWriter;
 import ar.zon.calculadora.infra.csv.CsvRowReader;
 import ar.zon.calculadora.infra.maps.CoordinatesGeocoder;
 import ar.zon.calculadora.infra.maps.FileGeocoder;
+import ar.zon.calculadora.infra.xlsx.XlsxReportWriter;
+import ar.zon.calculadora.infra.xlsx.XlsxRowReader;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,13 +85,12 @@ public final class Main {
             if (parsed.logLevel() != null && !LOG_LEVELS.contains(parsed.logLevel().toUpperCase(Locale.ROOT))) {
                 throw new BatchException(ErrorCode.INVALID_CONFIG, "log-level no válido: " + parsed.logLevel());
             }
-            if (!parsed.output().toString().toLowerCase(Locale.ROOT).endsWith(".csv")) {
-                throw new BatchException(ErrorCode.UNSUPPORTED_FORMAT, "Stage 2 solo genera informes .csv");
-            }
-
             CalculationConfig config = loadConfig(parsed.config(), parsed.services());
             ConfigValidator.validate(config);
             validateConfiguredPaths(parsed, config);
+            String inputFormat = fileFormat(parsed.input());
+            String outputFormat = "auto".equals(config.output().format())
+                    ? fileFormat(parsed.output()) : config.output().format();
             if (config.services().mode().equals("BUNDLED")) {
                 throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE, "Stage 2 no incluye servicios locales");
             }
@@ -101,11 +104,21 @@ public final class Main {
 
             System.err.println("Leyendo y procesando " + parsed.input());
             BatchSummary summary;
-            try (var rows = new CsvRowReader().read(parsed.input(), config);
-                 var report = new CsvReportWriter().open(parsed.output(), config, parsed.force())) {
-                summary = new CalculateSurveyBatchUseCase(config, geocoder, router, factors)
-                        .run(rows, parsed.destination(), parsed.event(), report::writeRow);
-                report.commit();
+            var engine = new CalculateSurveyBatchUseCase(config, geocoder, router, factors);
+            try (SurveyRows rows = "xlsx".equals(inputFormat)
+                    ? new XlsxRowReader().read(parsed.input(), config)
+                    : new CsvRowReader().read(parsed.input(), config)) {
+                if ("xlsx".equals(outputFormat)) {
+                    try (var report = XlsxReportWriter.open(parsed.output(), rows.headers(), parsed.force())) {
+                        summary = engine.run(rows, parsed.destination(), parsed.event(), report);
+                        report.commit(summary);
+                    }
+                } else {
+                    try (var report = new CsvReportWriter().open(parsed.output(), config, parsed.force())) {
+                        summary = engine.run(rows, parsed.destination(), parsed.event(), report::writeRow);
+                        report.commit();
+                    }
+                }
             }
             System.out.println(SummaryRenderer.console(summary));
             if (parsed.summary() != null) {
@@ -116,10 +129,24 @@ public final class Main {
         } catch (BatchException e) {
             System.err.println("ERROR " + e.code() + ": " + e.getMessage());
             return 2;
+        } catch (IOException | UncheckedIOException e) {
+            System.err.println("ERROR " + ErrorCode.INPUT_UNREADABLE + ": " + e.getMessage());
+            return 2;
         } catch (Exception e) {
             System.err.println("ERROR " + ErrorCode.INVALID_CONFIG + ": " + e.getMessage());
             return 2;
         }
+    }
+
+    private static String fileFormat(Path path) throws BatchException {
+        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        if (name.endsWith(".xlsx")) {
+            return "xlsx";
+        }
+        if (name.endsWith(".csv")) {
+            return "csv";
+        }
+        throw new BatchException(ErrorCode.UNSUPPORTED_FORMAT, "Se esperaba un archivo .csv o .xlsx: " + path);
     }
 
     private static Arguments parse(String[] args) throws BatchException {

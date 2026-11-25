@@ -1,6 +1,7 @@
 package ar.zon.calculadora.core.pipeline;
 
 import ar.zon.calculadora.core.errors.BatchException;
+import ar.zon.calculadora.core.model.SurveyRow;
 
 import java.util.Map;
 
@@ -15,4 +16,9 @@ public interface ReportSink {
      * @throws BatchException si la fila no se puede escribir
      */
     void accept(Map<String, String> cells) throws BatchException;
+
+    /** Entrega también los datos de entrada a los informes que los necesitan. */
+    default void accept(SurveyRow input, Map<String, String> cells) throws BatchException {
+        accept(cells);
+    }
 }

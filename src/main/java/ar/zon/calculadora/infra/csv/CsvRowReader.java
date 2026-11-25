@@ -4,6 +4,7 @@ import ar.zon.calculadora.core.config.CalculationConfig;
 import ar.zon.calculadora.core.errors.BatchException;
 import ar.zon.calculadora.core.errors.ErrorCode;
 import ar.zon.calculadora.core.ingest.ColumnMapping;
+import ar.zon.calculadora.core.ingest.SurveyRows;
 import ar.zon.calculadora.core.model.SurveyRow;
 import de.siegmar.fastcsv.reader.CloseableIterator;
 import de.siegmar.fastcsv.reader.CsvReader;
@@ -67,9 +68,11 @@ public final class CsvRowReader {
         try {
             CloseableIterator<CsvRecord> records = reader.iterator();
             ColumnMapping mapping = null;
+            List<String> headers = List.of();
             for (int index = 1; index <= config.input().headerRow() && records.hasNext(); index++) {
                 List<String> fields = records.next().getFields();
                 if (index == config.input().headerRow()) {
+                    headers = List.copyOf(fields);
                     mapping = ColumnMapping.from(fields, config.columns());
                 }
             }
@@ -81,7 +84,7 @@ public final class CsvRowReader {
                 throw new BatchException(ErrorCode.MISSING_REQUIRED_COLUMN,
                         "Faltan columnas obligatorias: " + String.join(", ", mapping.missingRequired()));
             }
-            return new RowStream(reader, records, mapping);
+            return new RowStream(reader, records, mapping, headers);
         } catch (BatchException e) {
             closeQuietly(reader);
             throw e;
@@ -106,16 +109,24 @@ public final class CsvRowReader {
     }
 
     /** Filas mapeadas en lectura diferida. Debe cerrarse para liberar el archivo. */
-    public static final class RowStream implements Iterable<SurveyRow>, AutoCloseable {
+    public static final class RowStream implements SurveyRows {
 
         private final CsvReader<CsvRecord> reader;
         private final CloseableIterator<CsvRecord> records;
         private final ColumnMapping mapping;
+        private final List<String> headers;
 
-        private RowStream(CsvReader<CsvRecord> reader, CloseableIterator<CsvRecord> records, ColumnMapping mapping) {
+        private RowStream(CsvReader<CsvRecord> reader, CloseableIterator<CsvRecord> records,
+                          ColumnMapping mapping, List<String> headers) {
             this.reader = reader;
             this.records = records;
             this.mapping = mapping;
+            this.headers = headers;
+        }
+
+        @Override
+        public List<String> headers() {
+            return headers;
         }
 
         @Override
@@ -150,7 +161,7 @@ public final class CsvRowReader {
                     Map<String, String> cells = new HashMap<>();
                     mapping.indexes().forEach((logical, position) ->
                             cells.put(logical, position < fields.size() ? fields.get(position) : ""));
-                    return new SurveyRow(rowNumber, Map.copyOf(cells));
+                    return new SurveyRow(rowNumber, Map.copyOf(cells), List.copyOf(fields));
                 }
             };
         }
