@@ -56,17 +56,19 @@ public final class PhotonGeocoder implements Geocoder {
         }
         JsonNode features = json.path("features");
         List<GeoCandidate> candidates = new ArrayList<>();
-        Map<String, GeoPoint> pointsByLabel = new HashMap<>();
+        Map<String, GeoPoint> pointsByName = new HashMap<>();
         for (JsonNode feature : features) {
-            GeoCandidate candidate = toCandidate(feature, text);
+            String name = feature.path("properties").path("name").asText("");
+            GeoCandidate candidate = toCandidate(feature, text, name);
             if (candidate == null) {
                 continue;
             }
             // Photon no informa confianza: dos puntos con el mismo nombre son ambiguos.
-            GeoPoint previous = pointsByLabel.putIfAbsent(
-                    TextNormalizer.normalize(candidate.label()), candidate.point());
-            if (previous != null && !previous.equals(candidate.point())) {
-                return List.of();
+            if (!name.isBlank()) {
+                GeoPoint previous = pointsByName.putIfAbsent(TextNormalizer.normalize(name), candidate.point());
+                if (previous != null && !previous.equals(candidate.point())) {
+                    return List.of();
+                }
             }
             candidates.add(candidate);
         }
@@ -85,7 +87,7 @@ public final class PhotonGeocoder implements Geocoder {
         return path.toString();
     }
 
-    private static GeoCandidate toCandidate(JsonNode feature, String query) {
+    private static GeoCandidate toCandidate(JsonNode feature, String query, String name) {
         JsonNode coordinates = feature.path("geometry").path("coordinates");
         if (!coordinates.isArray() || coordinates.size() < 2) {
             return null;
@@ -95,12 +97,9 @@ public final class PhotonGeocoder implements Geocoder {
         if (!Double.isFinite(latitude) || !Double.isFinite(longitude)) {
             return null;
         }
-        String label = feature.path("properties").path("name").asText("");
-        if (label.isBlank()) {
-            label = query.trim();
-        }
-        // La coincidencia exacta gana sobre candidatos parciales sin depender del orden de Photon.
-        double score = TextNormalizer.normalize(label).equals(TextNormalizer.normalize(query)) ? 2.0 : 1.0;
+        // La etiqueta de respaldo solo se muestra: sin nombre original no hay coincidencia exacta.
+        String label = name.isBlank() ? query.trim() : name;
+        double score = TextNormalizer.normalize(name).equals(TextNormalizer.normalize(query)) ? 2.0 : 1.0;
         return new GeoCandidate(label, new GeoPoint(latitude, longitude), score, PROVIDER);
     }
 

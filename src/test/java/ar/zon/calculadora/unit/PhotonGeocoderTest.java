@@ -108,6 +108,29 @@ class PhotonGeocoderTest {
     }
 
     @Test
+    void namelessCandidateDoesNotDiscardTheExactMatch() throws IOException {
+        String exact = feature("Córdoba", -64.1888, -31.4201);
+        String nameless = feature("", -64.0, -31.5);
+
+        serve(collection(exact, nameless));
+        List<GeoCandidate> candidates = geocoder(null, null, null).geocode("Córdoba");
+        server.stop(0);
+
+        serve(collection(nameless, exact));
+        List<GeoCandidate> reversed = geocoder(null, null, null).geocode("Córdoba");
+
+        GeoCandidate selected = CandidateSelector.select(candidates).orElseThrow();
+        assertThat(selected.label()).isEqualTo("Córdoba");
+        assertThat(selected.point().latitude()).isEqualTo(-31.4201);
+        GeoCandidate selectedReversed = CandidateSelector.select(reversed).orElseThrow();
+        assertThat(selectedReversed.label()).isEqualTo("Córdoba");
+        assertThat(selectedReversed.point().latitude()).isEqualTo(-31.4201);
+        GeoCandidate namelessCandidate = candidates.stream().filter(c -> c.score() == 1.0).findFirst().orElseThrow();
+        assertThat(namelessCandidate.label()).isEqualTo("Córdoba");
+        assertThat(namelessCandidate.point().latitude()).isEqualTo(-31.5);
+    }
+
+    @Test
     void emptyFeaturesProduceNoCandidates() throws IOException {
         serve("{\"features\":[]}");
 
