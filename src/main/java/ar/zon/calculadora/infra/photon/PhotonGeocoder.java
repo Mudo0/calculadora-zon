@@ -58,7 +58,7 @@ public final class PhotonGeocoder implements Geocoder {
         List<GeoCandidate> candidates = new ArrayList<>();
         Map<String, GeoPoint> pointsByLabel = new HashMap<>();
         for (JsonNode feature : features) {
-            GeoCandidate candidate = toCandidate(feature, text, 1.0);
+            GeoCandidate candidate = toCandidate(feature, text);
             if (candidate == null) {
                 continue;
             }
@@ -85,7 +85,7 @@ public final class PhotonGeocoder implements Geocoder {
         return path.toString();
     }
 
-    private static GeoCandidate toCandidate(JsonNode feature, String fallbackLabel, double score) {
+    private static GeoCandidate toCandidate(JsonNode feature, String query) {
         JsonNode coordinates = feature.path("geometry").path("coordinates");
         if (!coordinates.isArray() || coordinates.size() < 2) {
             return null;
@@ -97,8 +97,10 @@ public final class PhotonGeocoder implements Geocoder {
         }
         String label = feature.path("properties").path("name").asText("");
         if (label.isBlank()) {
-            label = fallbackLabel.trim();
+            label = query.trim();
         }
+        // La coincidencia exacta gana sobre candidatos parciales sin depender del orden de Photon.
+        double score = TextNormalizer.normalize(label).equals(TextNormalizer.normalize(query)) ? 2.0 : 1.0;
         return new GeoCandidate(label, new GeoPoint(latitude, longitude), score, PROVIDER);
     }
 

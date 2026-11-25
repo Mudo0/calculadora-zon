@@ -90,6 +90,24 @@ class PhotonGeocoderTest {
     }
 
     @Test
+    void exactMatchWinsRegardlessOfResponseOrder() throws IOException {
+        String exact = feature("Córdoba", -64.1888, -31.4201);
+        String partial = feature("Barrio Córdoba", -64.19, -31.43);
+
+        serve(collection(exact, partial));
+        GeoCandidate natural = CandidateSelector.select(geocoder(null, null, null).geocode("Córdoba")).orElseThrow();
+        server.stop(0);
+
+        serve(collection(partial, exact));
+        GeoCandidate reversed = CandidateSelector.select(geocoder(null, null, null).geocode("Córdoba")).orElseThrow();
+
+        assertThat(natural.label()).isEqualTo("Córdoba");
+        assertThat(natural.point().latitude()).isEqualTo(-31.4201);
+        assertThat(reversed.label()).isEqualTo("Córdoba");
+        assertThat(reversed.point().latitude()).isEqualTo(-31.4201);
+    }
+
+    @Test
     void emptyFeaturesProduceNoCandidates() throws IOException {
         serve("{\"features\":[]}");
 
