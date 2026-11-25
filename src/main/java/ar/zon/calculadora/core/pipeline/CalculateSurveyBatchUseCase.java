@@ -136,7 +136,7 @@ public final class CalculateSurveyBatchUseCase {
         cells.put("error_message", "");
         cells.put("evento", event == null ? "" : event);
         cells.put("origen_input", originInput);
-        cells.put("origen_label", originInput);
+        cells.put("origen_label", result.originLabel().isBlank() ? originInput : result.originLabel());
         cells.put("destino_input", destination.input());
         cells.put("destino_label", destination.input());
         cells.put("destino_lat", format(destination.point().latitude(), 2));
@@ -150,8 +150,7 @@ public final class CalculateSurveyBatchUseCase {
             cells.put("emissions_kgco2e", "0");
         }
         cells.put("distance_fallback_used", String.valueOf(result.distance() != null && result.distance().fallback()));
-        cells.put("distance_fallback_reason",
-                result.distance() != null && result.distance().fallback() ? "ROUTE_UNAVAILABLE" : "");
+        cells.put("distance_fallback_reason", result.fallbackReason() == null ? "" : result.fallbackReason());
 
         NormalizedTrip trip = result.trip();
         if (trip != null) {

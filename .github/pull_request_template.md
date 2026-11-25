@@ -1,6 +1,6 @@
 # Name of Feature/Fix/Refactor
 
-<!--- Put a name to this change -->
+<!--- Put a name to this change. Include the stage name in the PR title, e.g. "Stage 3 - Mapas reales" or "feat(stage-3-real-maps): ...". -->
 
 ## Description
 

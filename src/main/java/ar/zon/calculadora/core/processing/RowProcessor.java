@@ -8,6 +8,7 @@ import ar.zon.calculadora.core.emissions.ConsumptionCalculator;
 import ar.zon.calculadora.core.emissions.EmissionCalculator;
 import ar.zon.calculadora.core.emissions.EmissionFactorProvider;
 import ar.zon.calculadora.core.errors.ErrorCode;
+import ar.zon.calculadora.core.errors.ServiceUnavailableException;
 import ar.zon.calculadora.core.geocode.CandidateSelector;
 import ar.zon.calculadora.core.geocode.Geocoder;
 import ar.zon.calculadora.core.ingest.RowAnalysis;
@@ -66,6 +67,8 @@ public final class RowProcessor {
         List<ar.zon.calculadora.core.geocode.GeoCandidate> candidates;
         try {
             candidates = geocoder.geocode(row.cells().getOrDefault("origen", ""));
+        } catch (ServiceUnavailableException e) {
+            throw e;
         } catch (RuntimeException e) {
             return Optional.of(result(row, RowStatus.ERROR, ErrorCode.GEOCODER_ERROR, null, null));
         }
@@ -74,16 +77,20 @@ public final class RowProcessor {
             return Optional.of(result(row, RowStatus.ERROR, ErrorCode.LOCATION_NOT_FOUND, null, null));
         }
         GeoPoint origin = selected.get().point();
+        String originLabel = selected.get().label();
+        int candidateCount = candidates.size();
 
         DistanceOutcome distance = resolveDistance(origin, destination);
         if (distance.error() != null) {
-            return Optional.of(result(row, RowStatus.ERROR, distance.error(), origin, null));
+            return Optional.of(result(row, RowStatus.ERROR, distance.error(), origin, null,
+                    originLabel, candidateCount, distance.reason()));
         }
 
         var factor = factors.find(analysis.transporte().name().toLowerCase(Locale.ROOT),
                 analysis.fuel().name().toLowerCase(Locale.ROOT)).orElse(null);
         if (factor == null) {
-            return Optional.of(result(row, RowStatus.ERROR, ErrorCode.FACTOR_NOT_FOUND, origin, null));
+            return Optional.of(result(row, RowStatus.ERROR, ErrorCode.FACTOR_NOT_FOUND, origin, null,
+                    originLabel, candidateCount, distance.reason()));
         }
 
         var consumption = ConsumptionCalculator.calculate(distance.value().km(), factor);
@@ -92,32 +99,38 @@ public final class RowProcessor {
                 analysis.fuelInferred(), analysis.personas(), origin, destination);
         RowStatus status = distance.value().fallback() ? RowStatus.OK_FALLBACK_HAVERSINE : RowStatus.OK;
         return Optional.of(new RowResult(row.number(), status, null, trip,
-                distance.value(), consumption, emission));
+                distance.value(), consumption, emission, originLabel, candidateCount, distance.reason()));
     }
 
     private DistanceOutcome resolveDistance(GeoPoint origin, GeoPoint destination) {
         String mode = config.distance().mode();
         boolean routePrimary = mode.equals("ROUTE") || mode.equals("BOTH");
         if (!routePrimary) {
-            return new DistanceOutcome(new DistanceResult(HaversineCalculator.distanceKm(origin, destination), false), null);
+            return new DistanceOutcome(new DistanceResult(HaversineCalculator.distanceKm(origin, destination), false),
+                    null, "");
         }
 
         Optional<ar.zon.calculadora.core.route.RouteResult> route;
+        String fallbackReason = ErrorCode.ROUTE_NOT_FOUND.name();
         try {
             route = router.route(origin, destination);
+        } catch (ServiceUnavailableException e) {
+            throw e;
         } catch (RuntimeException e) {
             if (!fallbackEnabled()) {
-                return new DistanceOutcome(null, ErrorCode.ROUTER_ERROR);
+                return new DistanceOutcome(null, ErrorCode.ROUTER_ERROR, ErrorCode.ROUTER_ERROR.name());
             }
             route = Optional.empty();
+            fallbackReason = ErrorCode.ROUTER_ERROR.name();
         }
         if (route.isPresent()) {
-            return new DistanceOutcome(new DistanceResult(route.get().km(), false), null);
+            return new DistanceOutcome(new DistanceResult(route.get().km(), false), null, "");
         }
         if (fallbackEnabled()) {
-            return new DistanceOutcome(new DistanceResult(HaversineCalculator.distanceKm(origin, destination), true), null);
+            return new DistanceOutcome(new DistanceResult(HaversineCalculator.distanceKm(origin, destination), true),
+                    null, fallbackReason);
         }
-        return new DistanceOutcome(null, ErrorCode.ROUTE_NOT_FOUND);
+        return new DistanceOutcome(null, ErrorCode.ROUTE_NOT_FOUND, ErrorCode.ROUTE_NOT_FOUND.name());
     }
 
     private boolean fallbackEnabled() {
@@ -126,13 +139,20 @@ public final class RowProcessor {
 
     private static RowResult result(SurveyRow row, RowStatus status, ErrorCode error,
                                     GeoPoint origin, DistanceResult distance) {
-        return new RowResult(row.number(), status, error, null, distance, null, null);
+        return result(row, status, error, origin, distance, "", 0, "");
+    }
+
+    private static RowResult result(SurveyRow row, RowStatus status, ErrorCode error, GeoPoint origin,
+                                    DistanceResult distance, String originLabel, int candidateCount,
+                                    String fallbackReason) {
+        return new RowResult(row.number(), status, error, null, distance, null, null,
+                originLabel, candidateCount, fallbackReason);
     }
 
     private static boolean isFullyEmpty(SurveyRow row) {
         return row.cells().values().stream().allMatch(value -> value == null || value.isBlank());
     }
 
-    private record DistanceOutcome(DistanceResult value, ErrorCode error) {
+    private record DistanceOutcome(DistanceResult value, ErrorCode error, String reason) {
     }
 }

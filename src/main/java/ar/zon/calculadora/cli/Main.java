@@ -5,16 +5,24 @@ import ar.zon.calculadora.core.config.ConfigValidator;
 import ar.zon.calculadora.core.emissions.EmissionFactorProvider;
 import ar.zon.calculadora.core.errors.BatchException;
 import ar.zon.calculadora.core.errors.ErrorCode;
+import ar.zon.calculadora.core.errors.ServiceUnavailableException;
+import ar.zon.calculadora.core.geocode.CachingGeocoder;
 import ar.zon.calculadora.core.geocode.Geocoder;
 import ar.zon.calculadora.core.pipeline.CalculateSurveyBatchUseCase;
+import ar.zon.calculadora.core.route.CachingRouter;
 import ar.zon.calculadora.core.route.Router;
 import ar.zon.calculadora.core.summary.BatchSummary;
 import ar.zon.calculadora.infra.config.PropertiesConfigLoader;
 import ar.zon.calculadora.infra.config.PropertiesEmissionFactorProvider;
 import ar.zon.calculadora.infra.csv.CsvReportWriter;
 import ar.zon.calculadora.infra.csv.CsvRowReader;
+import ar.zon.calculadora.infra.http.HttpJsonClient;
+import ar.zon.calculadora.infra.http.ServiceCallException;
+import ar.zon.calculadora.infra.http.ServiceFailureGuard;
 import ar.zon.calculadora.infra.maps.CoordinatesGeocoder;
 import ar.zon.calculadora.infra.maps.FileGeocoder;
+import ar.zon.calculadora.infra.osrm.OsrmRouteCalculator;
+import ar.zon.calculadora.infra.photon.PhotonGeocoder;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -91,12 +99,15 @@ public final class Main {
             if (config.services().mode().equals("BUNDLED")) {
                 throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE, "Stage 2 no incluye servicios locales");
             }
-            if (!config.distance().mode().equals("HAVERSINE")) {
-                throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE,
-                        "Stage 2 solo funciona con distance.mode=HAVERSINE");
-            }
-            Geocoder geocoder = selectGeocoder(config);
-            Router router = (origin, destination) -> Optional.empty();
+            HttpJsonClient photonClient = new HttpJsonClient(config.http().photonBaseUrl(),
+                    config.http().timeoutMs(), config.http().retries(),
+                    new ServiceFailureGuard(config.http().maxConsecutiveFailures()));
+            HttpJsonClient osrmClient = new HttpJsonClient(config.http().osrmBaseUrl(),
+                    config.http().timeoutMs(), config.http().retries(),
+                    new ServiceFailureGuard(config.http().maxConsecutiveFailures()));
+            Geocoder geocoder = selectGeocoder(config, photonClient);
+            Router router = selectRouter(config, osrmClient);
+            checkServices(config, photonClient, osrmClient);
             EmissionFactorProvider factors = loadFactors(config);
 
             System.err.println("Leyendo y procesando " + parsed.input());
@@ -113,6 +124,9 @@ public final class Main {
             }
             System.err.println("Informe escrito en " + parsed.output());
             return summary.errorRows() > 0 ? 1 : 0;
+        } catch (ServiceUnavailableException e) {
+            System.err.println("ERROR " + ErrorCode.SERVICE_UNAVAILABLE + ": " + e.getMessage());
+            return 2;
         } catch (BatchException e) {
             System.err.println("ERROR " + e.code() + ": " + e.getMessage());
             return 2;
@@ -192,7 +206,7 @@ public final class Main {
         }
     }
 
-    private static Geocoder selectGeocoder(CalculationConfig config) throws BatchException {
+    private static Geocoder selectGeocoder(CalculationConfig config, HttpJsonClient client) throws BatchException {
         return switch (config.geocoder().mode()) {
             case "COORDINATES" -> new CoordinatesGeocoder();
             case "FILE" -> {
@@ -204,9 +218,48 @@ public final class Main {
                     throw new BatchException(ErrorCode.INVALID_CONFIG, "geocoder.file no es válido");
                 }
             }
+            case "PHOTON" -> {
+                PhotonGeocoder photon = new PhotonGeocoder(client, config.geocoder().biasLat(),
+                        config.geocoder().biasLon(), config.geocoder().bbox(), config.geocoder().maxCandidates());
+                yield config.geocoder().cacheEnabled()
+                        ? new CachingGeocoder(photon, config.geocoder().cacheMaxEntries())
+                        : photon;
+            }
             default -> throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE,
-                    "Stage 2 no incluye el geocoder " + config.geocoder().mode());
+                    "No se incluye el geocoder " + config.geocoder().mode());
         };
+    }
+
+    private static Router selectRouter(CalculationConfig config, HttpJsonClient client) {
+        if (!routeRequired(config)) {
+            return (origin, destination) -> Optional.empty();
+        }
+        Router osrm = new OsrmRouteCalculator(client);
+        return config.distance().routeCacheEnabled()
+                ? new CachingRouter(osrm, config.distance().routeCacheMaxEntries())
+                : osrm;
+    }
+
+    private static boolean routeRequired(CalculationConfig config) {
+        String mode = config.distance().mode();
+        return mode.equals("ROUTE") || mode.equals("BOTH");
+    }
+
+    private static void checkServices(CalculationConfig config, HttpJsonClient photonClient,
+                                      HttpJsonClient osrmClient) throws BatchException {
+        if (!config.http().healthcheckEnabled()) {
+            return;
+        }
+        try {
+            if (config.geocoder().mode().equals("PHOTON")) {
+                photonClient.getJson("/api?q=Cordoba&limit=1");
+            }
+            if (routeRequired(config)) {
+                osrmClient.getJson("/route/v1/driving/-64.1888,-31.4201;-64.1888,-31.4201?overview=false");
+            }
+        } catch (ServiceCallException | ServiceUnavailableException e) {
+            throw new BatchException(ErrorCode.SERVICE_UNAVAILABLE, "Servicio de mapas no disponible: " + e.getMessage());
+        }
     }
 
     private static void validateDistinctPaths(Arguments args) throws BatchException {
