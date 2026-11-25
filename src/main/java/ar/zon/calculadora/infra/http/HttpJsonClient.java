@@ -76,6 +76,9 @@ public final class HttpJsonClient {
                             response.statusCode(), response.body());
                 }
                 JsonNode json = MAPPER.readTree(response.body());
+                if (json == null || json.isMissingNode()) {
+                    throw new IOException("El servicio devolvió un cuerpo JSON vacío");
+                }
                 if (guard != null) {
                     guard.recordSuccess();
                 }
