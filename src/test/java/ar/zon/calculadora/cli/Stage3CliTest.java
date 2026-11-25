@@ -48,6 +48,25 @@ class Stage3CliTest {
     }
 
     @Test
+    void bothModeWritesDifferentRoadAndStraightDistances() throws Exception {
+        serveFixtures();
+        Path config = config(1, false, "BOTH");
+        Path output = directory.resolve("both.csv");
+
+        Captured result = run("--input", input().toString(), "--output", output.toString(),
+                "--config", config.toString(), "--force");
+
+        assertThat(result.code()).isEqualTo(0);
+        String report = Files.readString(output);
+        String road = headerValue(report, "distance_km");
+        String straight = headerValue(report, "distance_straight_km");
+        assertThat(road).isNotBlank();
+        assertThat(straight).isNotBlank();
+        assertThat(road).isNotEqualTo(straight);
+        assertThat(headerValue(report, "distance_mode")).isEqualTo("BOTH");
+    }
+
+    @Test
     void stopsBatchWithExitTwoWhenServiceBreakerOpens() throws Exception {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> respond(exchange, 500, "down"));
@@ -120,6 +139,10 @@ class Stage3CliTest {
     }
 
     private Path config(int maxFailures, boolean healthcheck) throws IOException {
+        return config(maxFailures, healthcheck, "ROUTE");
+    }
+
+    private Path config(int maxFailures, boolean healthcheck, String distanceMode) throws IOException {
         Path factors = directory.resolve("factors.properties");
         Files.writeString(factors, """
                 factor.auto.nafta.basis=vehicle_km
@@ -135,7 +158,7 @@ class Stage3CliTest {
                 "geocoder.mode=PHOTON",
                 "geo.maxCandidates=5",
                 "geo.cache.enabled=false",
-                "distance.mode=ROUTE",
+                "distance.mode=" + distanceMode,
                 "route.cache.enabled=false",
                 "distance.fallback=HAVERSINE",
                 "distance.decimals=4",
