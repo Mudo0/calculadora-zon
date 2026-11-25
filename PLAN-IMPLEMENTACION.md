@@ -732,7 +732,7 @@ Use this checklist to track progress. Mark a stage done only when its "Done when
 - [x] **Stage 1 - Project skeleton + pure core** (`stage-1-project-core`) - independent; can run in parallel with Stage 0.
 - [x] **Stage 2 - End-to-end CSV flow, offline** (`stage-2-csv-offline`) - depends on Stage 1.
 - [ ] **Stage 3 - Real maps: Photon + OSRM adapters** (`stage-3-real-maps`) - depends on Stages 0 and 2; can run in parallel with Stage 4 once dependencies are done.
-- [ ] **Stage 4 - XLSX support and CSV/XLSX parity** (`stage-4-xlsx-parity`) - depends on Stage 2; can run in parallel with Stage 3 once Stage 2 is done.
+- [x] **Stage 4 - XLSX support and CSV/XLSX parity** (`stage-4-xlsx-parity`) - integrated in `16a2c0b`; parity and XLSX input/output verified with the Maven-packaged JAR. See [Stage 4 documentation](docs/stage-4.md).
 - [ ] **Stage 5 - Optional offline bundle + bundled-services launcher** (`stage-5-offline-bundle`) - optional; depends on Stages 0, 3, 4; execute only if offline bundle packaging is selected.
 - [ ] **Stage 6 - Hardening, smoke tests, docs** (`stage-6-hardening-docs`) - depends on Stages 3, 4 and 5 only if bundle selected.
 
@@ -873,6 +873,8 @@ Scope:
 5. Verify the shaded fat jar reads and writes XLSX when run with `java -jar`.
 
 Done when: parity test green and `java -jar` works with `.xlsx` in and out.
+
+Acceptance evidence: `XlsxParityIT` passed with the Maven-packaged JAR on Java 21, including CSV/XLSX parity and an XLSX-to-XLSX run with `java -jar`. Reports retain the optional vehicle model for reference. [Model-specific emissions](docs/stage-4.md#cálculo-por-modelo-en-una-etapa-posterior) require a separate decision with ITEC.
 
 ### Stage 5 - Optional offline bundle + bundled-services launcher
 
