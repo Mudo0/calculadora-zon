@@ -92,19 +92,21 @@ healthcheck.enabled=true
 factors.file=C:/ruta/al/temporal/factors.properties
 ```
 
-El jar se genera con `mvn -o package -DskipTests` y se ejecuta:
+Desde la raíz del repositorio, generar el jar con `mvn -o package -DskipTests` y ejecutar cada escenario con rutas absolutas a los archivos temporales (en Windows con `/` como separador):
 
 ```powershell
-java -jar target/zon-calculadora-0.1.0-SNAPSHOT.jar --input input.csv --output report.csv --config app.properties --force
+java -jar target/zon-calculadora-0.1.0-SNAPSHOT.jar --input C:/ruta/al/temporal/input.csv --output C:/ruta/al/temporal/report-<escenario>.csv --config C:/ruta/al/temporal/app.properties --force
 ```
 
 Tres corridas, con un solo valor distinto entre ellas:
 
-| Corrida | OSRM | `healthcheck.enabled` | Resultado observado |
-| --- | --- | --- | --- |
-| Nominal | arriba | `true` | salida `0`, 3/3 `OK`, sin fallback; Villa Carlos Paz 36,5730 km |
-| Fallback | detenido | `false` | salida `0`, 3/3 `OK_FALLBACK_HAVERSINE` con `distance_fallback_reason=ROUTER_ERROR` |
-| Salida 2 | detenido | `true` | salida `2`, `SERVICE_UNAVAILABLE`, sin informe |
+| Corrida | OSRM | `healthcheck.enabled` | `--output` | Resultado observado |
+| --- | --- | --- | --- | --- |
+| Nominal | arriba | `true` | `report-nominal.csv` | salida `0`, 3/3 `OK`, sin fallback; Villa Carlos Paz 36,5730 km |
+| Fallback | detenido | `false` | `report-fallback.csv` | salida `0`, 3/3 `OK_FALLBACK_HAVERSINE` con `distance_fallback_reason=ROUTER_ERROR` |
+| Salida 2 | detenido | `true` | `report-salida2.csv` | salida `2`, `SERVICE_UNAVAILABLE`, sin informe |
+
+Después de la corrida con salida 2, `Test-Path C:/ruta/al/temporal/report-salida2.csv` debe devolver `False`. El health-check se ejecuta antes de abrir el informe (`Main.java:110-116`), así que esa corrida no crea ni sobrescribe ningún CSV; el nombre propio de salida evita confundirlo con el informe de las corridas anteriores. Borrar `report-salida2.csv` antes de la corrida si quedó de una ejecución previa.
 
 En la corrida de fallback se detuvo solo OSRM (`Stop-Process` sobre el PID que escucha en `5000`) y se reinició al terminar; Photon siguió arriba en las tres.
 
