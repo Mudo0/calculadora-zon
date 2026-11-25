@@ -150,6 +150,27 @@ class PhotonGeocoderTest {
     }
 
     @Test
+    void namedWinnerIsKeptWithAmbiguousNamelessCandidates() throws IOException {
+        String named = feature("Alta Gracia", -64.4338563, -31.6578916);
+        String first = feature("", -64.0, -31.5);
+        String second = feature("", -64.1, -31.6);
+
+        serve(collection(first, named, second));
+        GeoCandidate selected = CandidateSelector.select(
+                geocoder(null, null, null).geocode("Alta Gracia, Córdoba")).orElseThrow();
+        server.stop(0);
+
+        serve(collection(second, first, named));
+        GeoCandidate reversed = CandidateSelector.select(
+                geocoder(null, null, null).geocode("Alta Gracia, Córdoba")).orElseThrow();
+
+        assertThat(selected.label()).isEqualTo("Alta Gracia");
+        assertThat(selected.point().latitude()).isEqualTo(-31.6578916);
+        assertThat(reversed.label()).isEqualTo("Alta Gracia");
+        assertThat(reversed.point().latitude()).isEqualTo(-31.6578916);
+    }
+
+    @Test
     void namelessCandidatesAtDifferentPointsAreAmbiguousRegardlessOfResponseOrder() throws IOException {
         String first = feature("", -64.0, -31.5);
         String second = feature("", -64.1, -31.6);

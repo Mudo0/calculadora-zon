@@ -77,8 +77,14 @@ public final class PhotonGeocoder implements Geocoder {
             }
             candidates.add(candidate);
         }
-        // Sin nombre no hay forma de desempatar: elegir el primero dependería del orden de Photon.
-        if (namelessPoints.size() > 1 && candidates.stream().noneMatch(c -> c.score() == 2.0)) {
+        // La ambigüedad solo anula si los anónimos empatan con el mejor candidato del selector.
+        double bestScore = candidates.stream().mapToDouble(GeoCandidate::score).max().orElse(0.0);
+        String bestLabel = candidates.stream()
+                .filter(c -> c.score() == bestScore)
+                .map(c -> TextNormalizer.normalize(c.label()))
+                .min(String::compareTo).orElse("");
+        if (namelessPoints.size() > 1 && bestScore == 1.0
+                && bestLabel.equals(TextNormalizer.normalize(text.trim()))) {
             return List.of();
         }
         return List.copyOf(candidates);
