@@ -23,8 +23,8 @@ S5 - Convención: cada issue tiene su propia PR con el nombre del stage en el t�
 
 ## Tasks
 
-- T1 — S1 — #4 hardening de `HttpJsonClient` con RED -> GREEN — rama `fix/stage3-http-hardening`, PR propia — estado: pendiente
-- T2 — S2 — #9 prueba CSV de `distance_straight_km` en BOTH — rama `test/stage3-both-straight-km`, PR propia — estado: pendiente
+- T1 — S1 — #4 hardening de `HttpJsonClient` con RED -> GREEN — rama `fix/stage3-http-hardening`, PR #10 (base `stage-3-real-maps`), commit `0200b22` — estado: completo, `mvn -o verify` en verde (110 tests, 2 omitidos, 1 IT)
+- T2 — S2 — #9 prueba CSV de `distance_straight_km` en BOTH — rama `test/stage3-both-straight-km`, PR propia, commit `e69c582` — estado: completo, `mvn -o verify` en verde (111 tests, 2 omitidos, 1 IT); sin cambios en producción
 - T3 — S3 — #5 verificación del aviso de CVE y decisión documentada — rama `chore/stage3-jackson-cve`, PR propia — estado: pendiente
 
 ## Log
@@ -34,3 +34,7 @@ L1 (2026-11-25): "dale dejemos explicito que no se cierra la etapa, y luego abri
 L2 (2026-11-25): Se actualizó la descripción de la PR #8 con el aviso explícito `Estado: Stage 3 NO cerrado`, verificado por API en UTF-8. No se tocó código ni se cerraron issues. Se elige una PR por issue apilada sobre `stage-3-real-maps` porque #8 sigue abierta. El skill `branch-pr` exige `status:approved` y shellcheck, reglas que este repositorio no aplica; se sigue la plantilla del repo.
 
 L3 (2026-11-25): Bloque ejecutable aquí: #4, #9 y #5. Quedan para otro bloque #3, #6 y #7 por falta de servicios, datos o entorno. El checkbox de Stage 3 en `PLAN-IMPLEMENTACION.md` permanece sin marcar.
+
+L4 (2026-11-25): T1 completo. RED observado con `mvn -o '-Dtest=HttpJsonClientTest' test`: 7 tests, 1 fallo en `rejectsInvalidConstructorArguments`. GREEN con validación de argumentos y `recordSuccess()` posterior al parseo: 7/7. `mvn -o verify`: BUILD SUCCESS, 110 tests (2 omitidos), 1 IT. Commit `0200b22`, PR #10 abierta contra `stage-3-real-maps`, sin merge. La vinculación del issue es `Relacionado con #4 (sin cierre automático)`, igual que la convención ya usada en #8; no se usa `Closes` para no cerrar issues sin autorización. Las PRs del repo no tienen labels `type:*`, así que no se agregan.
+
+L5 (2026-11-25): T2 completo. `Stage3CliTest.bothModeWritesDifferentRoadAndStraightDistances` ejecuta la CLI con fixtures, escribe CSV real y comprueba `distance.mode=BOTH`, `distance_km` y `distance_straight_km` no vacíos y distintos. El test pasó en el primer intento (5/5): no hubo RED porque el comportamiento ya era correcto; es una prueba de regresión, no un cambio de comportamiento, y no hacía falta tocar producción. `mvn -o verify`: BUILD SUCCESS, 111 tests (2 omitidos), 1 IT.
