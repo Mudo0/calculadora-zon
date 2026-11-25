@@ -40,13 +40,13 @@ mvn '-Dzon.smoke=true' '-Dphoton.baseUrl=http://host:2322' '-Dosrm.baseUrl=http:
 
 Las comillas evitan que PowerShell separe las propiedades con punto. En bash también funcionan.
 
-Comprobaciones acordadas para el smoke: km de ruta plausibles contra la referencia (±10 %, referencia Córdoba–Villa Carlos Paz 36,37 km), fallback por fila al detener OSRM, salida 2 al detener un servicio en el arranque y el mismo flujo contra endpoints Docker parametrizados por `photon.baseUrl` y `osrm.baseUrl`.
+Comprobaciones acordadas para el smoke: km de ruta plausibles contra la referencia (±10 %, referencia Córdoba–Villa Carlos Paz 36,37 km), fallback por fila al detener OSRM, salida 2 al detener un servicio en el arranque y el mismo flujo contra endpoints Docker parametrizados por `photon.baseUrl` y `osrm.baseUrl`. Al detener OSRM el motivo observado es `ROUTER_ERROR`; `ROUTE_NOT_FOUND` corresponde a un `NoRoute` devuelto por el servicio, no a una caída.
 
 ## Verificación y continuidad
 
 - [x] `mvn -o verify`: 100 pruebas unitarias, 0 fallos, 2 omitidas (smoke) y 1 de integración. `mvn -o test`: el smoke queda omitido por defecto.
 - [x] Las fixtures reales del Stage 0 ejercitan mapeo `[lon, lat]`, consulta con `q`/`limit`/`lat`/`lon`/`bbox`, 36370,9 m → 36,3709 km, selección determinista y respuestas sin ruta.
-- [ ] **[Pendiente]** Smoke con servicios reales: no se pudo ejecutar en este workspace. Los puertos 2322 y 5000 no responden y falta el ZIP portable `dist/zon-mapas-cordoba-stage0-windows-x64.zip`. Debe correrse en la PC con los servicios levantados.
+- [x] Smoke con servicios reales: `RealMapsSmokeTest` 2/2 con endpoints por defecto y con `-Dphoton.baseUrl` / `-Dosrm.baseUrl` explícitos. CLI completa sobre tres localidades con `geocoder.mode=PHOTON` y `distance.mode=ROUTE`: 3/3 correctas, Villa Carlos Paz 36,5730 km y sin fallback. Con OSRM detenido, 3/3 filas `OK_FALLBACK_HAVERSINE` con `distance_fallback_reason=ROUTER_ERROR`; con `healthcheck.enabled=true`, salida `2` y sin informe. Servicios levantados desde `dist/zon-mapas-cordoba-stage0-windows-x64-revision-localidades.zip`. La variante Docker queda en #7.
 - [ ] **[Pendiente]** Integración posterior de los 7 alias y 59 respaldos GeoRef y la revisión de 515 localidades, diferida por decisión del usuario; sigue registrada en [stage-0-localidades.md](stage-0-localidades.md).
 
 [Inventario de pendientes](pendientes.md) · [Plan de implementación](../PLAN-IMPLEMENTACION.md) · [Registro técnico de tareas](../odd/tasks/stage-3-real-maps.md) · [Stage 0](stage-0.md) · [Smoke test](../src/test/java/ar/zon/calculadora/smoke/RealMapsSmokeTest.java)
