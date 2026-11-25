@@ -72,6 +72,17 @@ class HttpJsonClientTest {
     }
 
     @Test
+    void emptyBodyCountsAsFailureAndOpensGuard() throws IOException {
+        server = serve(request -> respond(request, 200, "   "));
+        var guard = new ServiceFailureGuard(2);
+        guard.recordFailure();
+        var client = new HttpJsonClient(url(), 1000, 0, guard);
+
+        assertThatThrownBy(() -> client.getJson("/api?q=x"))
+                .isInstanceOf(ServiceUnavailableException.class);
+    }
+
+    @Test
     void clientErrorDoesNotCountAsGuardFailure() throws IOException {
         server = serve(request -> respond(request, 404, "{\"error\":\"missing\"}"));
         var guard = new ServiceFailureGuard(1);
