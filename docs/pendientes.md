@@ -16,10 +16,10 @@ Orden de prioridad: primero lo que bloquea cerrar Stage 3 (P1), luego la deuda t
 
 1. Correr `RealMapsSmokeTest` con Photon en `2322` y OSRM en `5000`.
 2. Correr el flujo completo de la CLI con `geocoder.mode=PHOTON` y `distance.mode=ROUTE` sobre varias localidades de Córdoba.
-3. Verificar los cuatro criterios del plan: km plausibles contra la referencia Córdoba–Villa Carlos Paz (36,37 km, tolerancia sugerida ±10 %), fallback por fila al detener OSRM, salida 2 al detener un servicio en el arranque y el mismo flujo apuntando a endpoints Docker parametrizados por `photon.baseUrl` / `osrm.baseUrl`.
+3. Verificar los cuatro criterios del plan: km plausibles contra la referencia Córdoba–Villa Carlos Paz (36,37 km, tolerancia sugerida ±10 %), fallback por fila al detener OSRM (`OK_FALLBACK_HAVERSINE` con `distance_fallback_reason=ROUTER_ERROR`; `ROUTE_NOT_FOUND` corresponde a un `NoRoute` del servicio), salida 2 al detener un servicio en el arranque y el mismo flujo apuntando a endpoints parametrizados por `photon.baseUrl` / `osrm.baseUrl` (la variante Docker depende de #7).
 4. Marcar el checkbox de Stage 3 en `PLAN-IMPLEMENTACION.md` solo cuando todo lo anterior pase.
 
-**Por qué.** En este workspace los puertos `2322` y `5000` no responden y falta el paquete portable `dist/zon-mapas-cordoba-stage0-windows-x64.zip`. Además, no existe el directorio `deploy/docker/`: el archivo `docker-compose.maps.yml` está descrito en el Anexo C del plan pero no está materializado en el repositorio. Las pruebas actuales demuestran que los adaptadores interpretan bien las respuestas, pero no que hablen con los servicios reales. El plan exige ese smoke para dar por cerrada la etapa, por eso el checkbox sigue sin marcar.
+**Por qué.** El smoke se ejecutó contra los servicios nativos del paquete portable del Stage 0, que no está versionado (`.gitignore` excluye `dist/`). Queda registrado en [stage-3.md](stage-3.md) como evidencia repetible. No existe el directorio `deploy/docker/`: el archivo `docker-compose.maps.yml` está descrito en el Anexo C del plan pero no está materializado, así que la comparación con Docker sigue en #7 y el checkbox de Stage 3 permanece sin marcar.
 
 **Cómo hacerlo.** En la PC con los servicios disponibles, levantar Photon y OSRM con el ZIP portable según `docs/stage-0.md`, o materializar el compose desde el Anexo C y ejecutar `docker compose -f deploy/docker/docker-compose.maps.yml up -d`. Luego:
 
@@ -31,9 +31,11 @@ mvn '-Dzon.smoke=true' '-Dtest=RealMapsSmokeTest' test
 mvn '-Dzon.smoke=true' '-Dphoton.baseUrl=http://host:2322' '-Dosrm.baseUrl=http://host:5000' '-Dtest=RealMapsSmokeTest' test
 ```
 
-Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades con punto y Maven falla con `Unknown lifecycle phase .smoke=true`. Para la prueba de fallback, detener solo OSRM y confirmar que las filas pasan a `OK_FALLBACK_HAVERSINE` con `distance_fallback_reason=ROUTE_NOT_FOUND`; para la salida 2, detener un servicio antes de arrancar con `healthcheck.enabled=true`.
+Las comillas son obligatorias en PowerShell: sin ellas separa las propiedades con punto y Maven falla con `Unknown lifecycle phase .smoke=true`. Para la prueba de fallback, detener solo OSRM y confirmar que las filas pasan a `OK_FALLBACK_HAVERSINE` con `distance_fallback_reason=ROUTER_ERROR`; para la salida 2, detener un servicio antes de arrancar con `healthcheck.enabled=true`.
 
-**Cierre:** smoke verde, cuatro criterios verificados y checkbox actualizado.
+**Estado (2026-11-25):** ejecutado contra servicios nativos del ZIP portable. Smoke 2/2 con endpoints por defecto y parametrizados; CLI 3/3 correctas sobre Alta Gracia, Villa Carlos Paz y Córdoba, con 36,5730 km en Villa Carlos Paz y sin fallback; OSRM detenido produjo 3/3 `OK_FALLBACK_HAVERSINE` con `ROUTER_ERROR`; health-check activo con OSRM caído devolvió salida `2` sin escribir informe.
+
+**Cierre:** pendiente de la variante Docker (#7); el checkbox de Stage 3 no se marca hasta resolver #3, #6 y #7.
 
 ---
 
