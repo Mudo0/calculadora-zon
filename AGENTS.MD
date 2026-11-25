@@ -1,5 +1,13 @@
 # ZON development guidelines
 
+## Git synchronization
+
+- Before reading files, analyzing code, or starting any task in this
+  repository, run `git status` and `git pull` (or `git pull --rebase` if
+  configured for the branch) to work on the latest remote state.
+- If `git pull` fails due to uncommitted local changes or merge/rebase
+  conflicts, stop and report the issue before modifying any files.
+
 ## Project context and skills
 
 Before starting any task, read:
