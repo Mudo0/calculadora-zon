@@ -63,7 +63,8 @@ public final class HttpJsonClient {
                     continue;
                 }
                 if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                    throw new ServiceCallException("Servicio devolvió " + response.statusCode(), null);
+                    throw new ServiceCallException("Servicio devolvió " + response.statusCode(), null,
+                            response.statusCode(), response.body());
                 }
                 if (guard != null) {
                     guard.recordSuccess();

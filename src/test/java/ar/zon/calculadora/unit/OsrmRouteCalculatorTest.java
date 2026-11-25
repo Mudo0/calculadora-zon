@@ -3,6 +3,7 @@ package ar.zon.calculadora.unit;
 import ar.zon.calculadora.core.distance.GeoPoint;
 import ar.zon.calculadora.core.route.RouteResult;
 import ar.zon.calculadora.infra.http.HttpJsonClient;
+import ar.zon.calculadora.infra.http.ServiceCallException;
 import ar.zon.calculadora.infra.osrm.OsrmRouteCalculator;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OsrmRouteCalculatorTest {
 
@@ -44,7 +46,7 @@ class OsrmRouteCalculatorTest {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/", exchange -> {
             paths.add(exchange.getRequestURI().getRawPath() + "?" + exchange.getRequestURI().getRawQuery());
-            respond(exchange, fixture("osrm-cordoba-villa-carlos-paz.json"));
+            respond(exchange, 200, fixture("osrm-cordoba-villa-carlos-paz.json"));
         });
         server.start();
 
@@ -63,6 +65,21 @@ class OsrmRouteCalculatorTest {
     }
 
     @Test
+    void noRouteFromRealHttp400MeansNoRoute() throws IOException {
+        serve(400, "{\"code\":\"NoRoute\",\"message\":\"No route found\"}");
+
+        assertThat(calculator().route(new GeoPoint(-31.42, -64.18), new GeoPoint(-31.43, -64.49))).isEmpty();
+    }
+
+    @Test
+    void otherHttp400StillFailsTheCall() throws IOException {
+        serve(400, "{\"code\":\"InvalidUrl\",\"message\":\"Bad request\"}");
+
+        assertThatThrownBy(() -> calculator().route(new GeoPoint(-31.42, -64.18), new GeoPoint(-31.43, -64.49)))
+                .isInstanceOf(ServiceCallException.class);
+    }
+
+    @Test
     void missingDistanceMeansNoRoute() throws IOException {
         serve("{\"code\":\"Ok\",\"routes\":[{}]}");
 
@@ -74,8 +91,12 @@ class OsrmRouteCalculatorTest {
     }
 
     private void serve(String body) throws IOException {
+        serve(200, body);
+    }
+
+    private void serve(int status, String body) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/", exchange -> respond(exchange, body));
+        server.createContext("/", exchange -> respond(exchange, status, body));
         server.start();
     }
 
@@ -83,9 +104,9 @@ class OsrmRouteCalculatorTest {
         return "http://127.0.0.1:" + server.getAddress().getPort();
     }
 
-    private static void respond(HttpExchange exchange, String body) throws IOException {
+    private static void respond(HttpExchange exchange, int status, String body) throws IOException {
         byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(200, bytes.length);
+        exchange.sendResponseHeaders(status, bytes.length);
         try (var output = exchange.getResponseBody()) {
             output.write(bytes);
         }
