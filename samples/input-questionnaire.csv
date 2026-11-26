@@ -1,6 +1,0 @@
-pais;capital;barrio;localidad;origen;medio;combustible;personas;modelo_vehiculo
-Argentina;true;Alberdi;;"Alberdi, Córdoba";auto;nafta;2;Modelo de prueba A
-Argentina;false;;Alta Gracia;Alta Gracia;moto;nafta;1;Modelo de prueba B
-Argentina;false;;Villa Allende;Villa Allende;colectivo;;1;
-Argentina;true;Centro;;"Centro, Córdoba";bici;;;
-Uruguay;;;;Uruguay;auto;gasoil;3;
